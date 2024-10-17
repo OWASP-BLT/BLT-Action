@@ -10,6 +10,7 @@
 - **Assignment Validation**: The action prevents multiple assignments by checking if a user is already assigned to an issue.
 - **One Issue at a Time**: Limits users to be assigned to only one issue simultaneously.
 - **Time-Based Unassignment**: Automatically unassigns users from issues if they are not resolved within 5 days, keeping the issue flow active.
+- **Automatic Notifications**: Automatically notifies team members of new issues, pull requests, or comments, improving communication and collaboration within the organization.
 
 ## Getting Started
 
@@ -47,12 +48,54 @@
     
     ```
 
+2. **Add the Notification Workflow to Your Repository**:
+   - Create a new YAML file inside the workflows directory (e.g., `notify.yml`).
+   - Add the following content to the YAML file:
+
+    ```yml
+    name: Notify Team Members
+
+    on:
+      issues:
+        types: [opened]
+      pull_request:
+        types: [opened]
+      issue_comment:
+        types: [created]
+
+    jobs:
+      notify:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v2
+
+          - name: Notify team members
+            uses: actions/github-script@v4
+            with:
+              script: |
+                const { context, github } = require('@actions/github');
+                const { payload } = context;
+                const issue = payload.issue || payload.pull_request;
+                const comment = payload.comment;
+                const message = issue ? `New ${issue.pull_request ? 'pull request' : 'issue'}: ${issue.title}` : `New comment on ${comment.issue_url}: ${comment.body}`;
+                const teamMembers = ['team_member1', 'team_member2']; // Replace with actual team member usernames
+                for (const member of teamMembers) {
+                  github.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    body: `@${member} ${message}`
+                  });
+                }
+    ```
 
 ### Usage
 
 - To assign yourself to an issue, comment `/assign` on the issue.
 - To unassign yourself to an issue, comment `/unassign` on the issue.
 - The action will automatically check for your current assignments and assign you to the issue if you are eligible.
+- The notification workflow will automatically notify team members of new issues, pull requests, or comments.
 
 ## Contributing
 

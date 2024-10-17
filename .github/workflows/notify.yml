@@ -1,0 +1,35 @@
+name: Notify Team Members
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Notify team members
+        uses: actions/github-script@v4
+        with:
+          script: |
+            const { context, github } = require('@actions/github');
+            const { payload } = context;
+            const issue = payload.issue || payload.pull_request;
+            const comment = payload.comment;
+            const message = issue ? `New ${issue.pull_request ? 'pull request' : 'issue'}: ${issue.title}` : `New comment on ${comment.issue_url}: ${comment.body}`;
+            const teamMembers = ['team_member1', 'team_member2']; // Replace with actual team member usernames
+            for (const member of teamMembers) {
+              github.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `@${member} ${message}`
+              });
+            }
