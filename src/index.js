@@ -13,10 +13,78 @@ const run = async () => {
     console.log(repository);
 
     const { eventName, payload } = github.context;
-    const { issue, comment } = payload;
+    const { issue, comment, pull_request } = payload;
     const [owner, repo] = repository.split('/');
     let proceedWithIssueProcessing = false; // Initialize the flag
     console.log(eventName);
+
+    if (eventName === 'pull_request' && pull_request) {
+        try {
+            // This part is to ensure that whenever a PR is raised, the PR body contains an issue reference (e.g., "fixes #123")
+            const prBody = pull_request.body || '';
+
+            // Regular expression to match issue references like 'fixes #123' or 'closes #123', similar to the one we check later on for closure
+            const issueReferenceRegex = /\b(fixes|closes|resolves|related)\s+#\d+\b/i;
+
+            if (!issueReferenceRegex.test(prBody)) {
+                console.log('No issue reference found in PR body.');
+                
+                // Optionally, post a comment on the PR to ask for the issue reference
+                await octokit.rest.issues.createComment({
+                    owner: githubOwner,
+                    repo: githubRepo,
+                    issue_number: pull_request.number,
+                    body: 'Please mention an issue number in the format "fixes #<issue_number>" or "closes #<issue_number>" in your PR description.'
+                });
+
+                // Fail the action here and tell the author to add issue reference in body
+                core.setFailed('Pull request description must mention an issue number (e.g., "fixes #123").');
+            } else {
+                console.log('PR description contains a valid issue reference.');
+            }
+            // Check if PR is merged
+            if (pull_request.merged) {
+
+                const linkedIssues = await findLinkedIssues(octokit, owner, repo, pull_request.number);
+                
+                for (const issueNumber of linkedIssues) {
+                    // Fetch issue details of all linked issues for analysis
+                    const issueDetails = await octokit.rest.issues.get({
+                        owner,
+                        repo,
+                        issue_number: issueNumber
+                    });
+
+                    // Here we check for other scenarios (provides flexibility to not auto-close issues)
+                    const hasOpenComments = await checkPendingWorkComments(octokit, owner, repo, issueNumber);
+                    const hasComplexLabels = issueDetails.data.labels.some(
+                        label => ['epic', 'requires-investigation', 'blocked'].includes(label.name)
+                    );
+
+                    if (!hasOpenComments && !hasComplexLabels) {
+                        // Close the issue if no pending work (pending work determined by the comments and labels)
+                        await octokit.rest.issues.update({
+                            owner,
+                            repo,
+                            issue_number: issueNumber,
+                            state: 'closed',
+                            labels: ['resolved-by-pr']
+                        });
+                    } else {
+                        // Add partial resolution label
+                        await octokit.rest.issues.addLabels({
+                            owner,
+                            repo,
+                            issue_number: issueNumber,
+                            labels: ['partially-resolved']
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('PR Processing Error:', error);
+        }
+    }
 
     if (eventName === 'issue_comment' && issue && comment) {
         console.log('processing issue comment');
@@ -191,5 +259,58 @@ const unwrap = (srcDir, destDir) => {
         handleSymbolicLinks(srcPath, destPath);
     });
 };
+
+async function findLinkedIssues(octokit, owner, repo, prNumber) {
+    // Fetch PR details to get body
+    const { data: pullRequest } = await octokit.rest.pulls.get({
+        owner,
+        repo,
+        pull_request_number: prNumber
+    });
+
+    // Extract issue numbers from PR body
+    const bodyIssues = (pullRequest.body || '').match(/(?:fixes|closes|resolves|related)\s*#(\d+)/gi)
+        ?.map(match => parseInt(match.match(/\d+/)[0]))
+        || [];
+
+    // Fetch PR comments
+    const { data: prComments } = await octokit.rest.issues.listComments({
+        owner,
+        repo,
+        issue_number: prNumber
+    });
+
+    // Extract issue numbers from comments
+    const commentIssues = prComments
+        .filter(comment => 
+            comment.body.includes('fixes #') || 
+            comment.body.includes('closes #')
+        )
+        .map(comment => {
+            const match = comment.body.match(/(?:fixes|closes|resolves|related)\s*#(\d+)/i);
+            return match ? parseInt(match[1]) : null;
+        })
+        .filter(Boolean);
+
+    // Combine the results. We may get duplicates so use Set to get rid of them
+    return [...new Set([...bodyIssues, ...commentIssues])];
+}
+
+// Check for pending work in comments
+async function checkPendingWorkComments(octokit, owner, repo, issueNumber) {
+    const { data: comments } = await octokit.rest.issues.listComments({
+        owner,
+        repo,
+        issue_number: issueNumber
+    });
+
+    return comments.some(
+        comment => 
+            comment.body.includes('#TODO') || 
+            comment.body.includes('pending work') || 
+            comment.body.includes('partial work') || 
+            comment.body.includes('need more investigation')
+    );
+}
 
 run();
