@@ -112,6 +112,7 @@ const run = async () => {
 
         let last_event = { issue: { number: "" } };
         let present_date = new Date();
+        const processedActions = new Set();
 
         await octokit.paginate(octokit.issues.listEventsForRepo, {
             owner,
@@ -127,44 +128,49 @@ const run = async () => {
 
                     if (last_event.issue.number != event.issue.number) {
 
-                        console.log(
-                            event.issue.updated_at + " " +
-                            event.issue.number + " " +
-                            event.assignee.login + " " +
-                            event.issue.assignee.login + " " +
-                            event.issue.state + " " +
-                            (Difference_In_Time / (1000 * 3600 * 24)).toString() + " days",
-                        );
+                        const actionId = `${event.issue.number}-${event.assignee.login}`;
+                        if (!processedActions.has(actionId)) {
+                            console.log(
+                                event.issue.updated_at + " " +
+                                event.issue.number + " " +
+                                event.assignee.login + " " +
+                                event.issue.assignee.login + " " +
+                                event.issue.state + " " +
+                                (Difference_In_Time / (1000 * 3600 * 24)).toString() + " days",
+                            );
 
-                        if ((Difference_In_Time / (1000 * 3600 * 24)) > 1) {
-                            // Check if the issue has any labels
-                            const issueDetails = await octokit.issues.get({
-                                owner,
-                                repo,
-                                issue_number: event.issue.number
-                            });
+                            processedActions.add(actionId);
 
-
-                            if (issueDetails.data.labels.length === 0) {
-                                console.log('unassigning ' + event.issue.assignee.login + " from " + event.issue.number);
-
-                                await octokit.issues.removeAssignees({
+                            if ((Difference_In_Time / (1000 * 3600 * 24)) > 1) {
+                                // Check if the issue has any labels
+                                const issueDetails = await octokit.issues.get({
                                     owner,
                                     repo,
-                                    issue_number: event.issue.number,
-                                    assignees: [event.issue.assignee.login],
+                                    issue_number: event.issue.number
                                 });
 
-                                // Add a comment about unassignment
-                                await octokit.issues.createComment({
-                                    owner,
-                                    repo,
-                                    issue_number: event.issue.number,
-                                    body: `⏰ This issue has been automatically unassigned due to 24 hours of inactivity. 
-                                    The issue is now available for anyone to work on again.`
-                                });
-                            } else {
-                                console.log(`Issue #${event.issue.number} has labels, skipping unassign.`);
+
+                                if (issueDetails.data.labels.length === 0) {
+                                    console.log('unassigning ' + event.issue.assignee.login + " from " + event.issue.number);
+
+                                    await octokit.issues.removeAssignees({
+                                        owner,
+                                        repo,
+                                        issue_number: event.issue.number,
+                                        assignees: [event.issue.assignee.login],
+                                    });
+
+                                    // Add a comment about unassignment
+                                    await octokit.issues.createComment({
+                                        owner,
+                                        repo,
+                                        issue_number: event.issue.number,
+                                        body: `⏰ This issue has been automatically unassigned due to 24 hours of inactivity. 
+                                        The issue is now available for anyone to work on again.`
+                                    });
+                                } else {
+                                    console.log(`Issue #${event.issue.number} has labels, skipping unassign.`);
+                                }
                             }
                         }
                     }
