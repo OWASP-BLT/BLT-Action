@@ -3,6 +3,7 @@ name: Run Automated Tests
 on:
     push:
     pull_request:
+      types: [opened, reopened, synchronize]
 
 jobs:
     test:
@@ -23,5 +24,15 @@ jobs:
             - name: Run Tests
               run: npm test
 
-
-
+            - name: Assign GitHub Copilot for PR Reviews
+              uses: actions/github-script@v6
+              if: github.event_name == 'pull_request'
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                script: |
+                  github.rest.pulls.requestReviewers({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: context.payload.pull_request.number,
+                    reviewers: ["github-copilot"]
+                  })
