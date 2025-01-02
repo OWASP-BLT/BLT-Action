@@ -144,8 +144,14 @@ const run = async () => {
                                 issue_number: event.issue.number
                             });
 
+                            const query = `type:pr state:open repo:${owner}/${repo} author:${event.issue.assignee.login} ${event.issue.number} in:body`;
+                            const searchResult = await octokit.search.issuesAndPullRequests({
+                                q: query
+                            });
 
-                            if (issueDetails.data.labels.length === 0) {
+                            if (searchResult.data.total_count > 0) {
+                                console.log(`Issue #${event.issue.number} has an open PR by ${event.issue.assignee.login}, skipping unassign.`);
+                            } else if (issueDetails.data.labels.length === 0) {  
                                 console.log('unassigning ' + event.issue.assignee.login + " from " + event.issue.number);
 
                                 await octokit.issues.removeAssignees({
