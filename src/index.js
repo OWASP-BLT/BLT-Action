@@ -21,6 +21,20 @@ const run = async () => {
 
     if (eventName === 'issue_comment' && issue && comment) {
         console.log('processing issue comment');
+
+        // New Kudos command handling
+        if (comment.body.startsWith('/kudos')) {
+            const kudosText = comment.body.slice(6).trim(); // Remove '/kudos'
+            const profileUrl = `https://blt.owasp.org/profile/${comment.user.login}/`;
+            const creationDate = comment.created_at ? new Date(comment.created_at).toISOString() : new Date().toISOString();
+            await octokit.issues.createComment({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body: `Kudos by @${comment.user.login} ([Profile](${profileUrl})) on ${creationDate}:\n\n${kudosText}`
+            });
+            return; 
+        }
         const commentBody = comment.body.toLowerCase(); // Convert to lower case for case-insensitive comparison
         const assignKeywords = ['/assign', 'assign to me', 'assign this to me', 'please assign me this', 'i can try fixing this', 'i am interested in doing this', 'i am interested in contributing'];
         const unassignKeywords = ['/unassign'];
