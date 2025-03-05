@@ -1,14 +1,13 @@
 const core = require("@actions/core");
 const github = require("@actions/github");
 const fs = require("fs");
-const { Octokit } = require("@octokit/core");
-const { WebClient } = require("@slack/web-api");
 
 
 const run = async () => {
   try {
     console.log("Starting GitHub Action...");
-
+    const {Octokit} = await import('@octokit/rest');
+    const {WebClient} = await import('@slack/web-api');
     // Get necessary inputs
     const gitHubToken = core.getInput("repo-token", { required: true });
     const octokit = github.getOctokit(gitHubToken);
