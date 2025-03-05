@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm init -y
-          npm install @octokit/rest @slack/web-api
+          npm install @octokit/core @slack/web-api
 
       - name: Capture GitHub Context
         run: echo '${{ toJson(github) }}' > github_context.json
