@@ -1,7 +1,7 @@
 const core = require("@actions/core");
 const github = require("@actions/github");
 const fs = require("fs");
-const { Octokit } = require("@octokit/rest");
+const { Octokit } = require("@octokit/core");
 const { WebClient } = require("@slack/web-api");
 
 
