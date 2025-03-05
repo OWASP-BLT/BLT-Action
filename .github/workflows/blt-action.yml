@@ -1,4 +1,4 @@
-name: Auto Assign Issues
+name: Bounty Bot & Auto Assign Issues
 
 on:
   issue_comment:
@@ -8,10 +8,35 @@ on:
   workflow_dispatch:
 
 jobs:
+  bounty:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm init -y
+          npm install @octokit/rest @slack/web-api
+
+      - name: Capture GitHub Context
+        run: echo '${{ toJson(github) }}' > github_context.json
+
+      - name: Run Bounty Bot
+        env:
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: node src/index.js github_context.json
+
   auto-assign:
     runs-on: ubuntu-latest
     steps:
       - name: Assign Issues
         uses: OWASP/BLT-Action@main
         with:
-            repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
