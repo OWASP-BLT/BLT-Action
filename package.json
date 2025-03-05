@@ -1,5 +1,5 @@
 {
-    "type": "module"
+    "type": "module",
     "name": "auto-assign-issue",
     "version": "1.0.2",
     "private": true,
