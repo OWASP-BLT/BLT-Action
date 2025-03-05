@@ -39,4 +39,4 @@ jobs:
       - name: Assign Issues
         uses: OWASP/BLT-Action@main
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
