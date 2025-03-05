@@ -22,13 +22,14 @@ jobs:
       - name: Install dependencies
         run: |
           npm init -y
-          npm install @octokit/rest @slack/web-api
+          npm install @actions/core @actions/github @octokit/rest @slack/web-api
 
       - name: Capture GitHub Context
         run: echo '${{ toJson(github) }}' > github_context.json
 
       - name: Run Bounty Bot
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: node src/index.js github_context.json
@@ -36,6 +37,9 @@ jobs:
   auto-assign:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Assign Issues
         uses: OWASP/BLT-Action@main
         with:

@@ -1,13 +1,17 @@
 import { getInput, setFailed } from "@actions/core";
 import { getOctokit, context } from "@actions/github";
-import { readFileSync, existsSync } from "fs";
 import { WebClient } from "@slack/web-api";
 
 const run = async () => {
   try {
     console.log("Starting GitHub Action...");
 
-    const githubToken = getInput("repo-token", { required: true });
+    // Handle missing repo-token gracefully
+    const githubToken = getInput("repo-token") || process.env.GITHUB_TOKEN || process.env.PERSONAL_ACCESS_TOKEN;
+    if (!githubToken) {
+      throw new Error("Missing required GitHub token. Ensure 'repo-token' or 'GITHUB_TOKEN' is set.");
+    }
+
     const octokit = getOctokit(githubToken);
     const slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 
