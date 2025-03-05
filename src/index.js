@@ -1,7 +1,6 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 const fs = require('fs');
-// const { Octokit } = require('@octokit/rest');
 const { WebClient } = require('@slack/web-api');
 
 const run = async () => {
@@ -34,7 +33,7 @@ const run = async () => {
         const assigneeLogin = comment.user.login;
 
         // Assignment keywords
-        const assignKeywords = ['/assign', 'assign to me', 'assign this to me', 'assign it to me', 'assign me this', 'work on this'];
+        const assignKeywords = ['/assign', 'assign to me', 'assign this to me', 'assign it to me', 'assign me this', 'work on this', 'i can try fixing this', 'i am interested in doing this', 'be assigned this', 'i am interested in contributing'];
         const unassignKeywords = ['/unassign'];
         const bountyRegex = /\/bounty\s+\$(\d+)/;
 
@@ -107,12 +106,6 @@ const processBounty = async (octokit, slack, owner, repo, issueNumber, commenter
         await octokit.issues.createComment({
             owner, repo, issue_number: issueNumber,
             body: `💰 A bounty has been added! This issue now has a total bounty of **$${totalBounty}** thanks to @${commenter}.` 
-        });
-
-        await slack.chat.postMessage({
-            channel: '#bounty-alerts',
-            text: `🚀 *Bounty Alert!*
-@${commenter} added *$${bountyAmount}* to issue #${issueNumber}. Total bounty: *$${totalBounty}*.`
         });
     } catch (error) {
         console.error("Error processing bounty:", error);
