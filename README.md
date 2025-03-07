@@ -27,24 +27,50 @@
    - Add the following content to the YAML file:
 
     ```yml
-    name: Auto Assign Issues
-    
-    on:
-      issue_comment:
-        types: [created]
-      schedule:
-        - cron: '0 0 * * *'
-      workflow_dispatch:
-    
-    jobs:
-      auto-assign:
-        runs-on: ubuntu-latest
-        steps:
-          - name: Assign Issues
-            uses: OWASP/BLT-Action@main
-            with:
-                repo-token: ${{ secrets.GITHUB_TOKEN }}
-    
+    name: Auto Assign & Bounty Bot
+
+on:
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  auto-assign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign Issues
+        uses: OWASP/BLT-Action@main
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }} 
+    continue-on-error: true  
+
+  bounty:
+    runs-on: ubuntu-latest
+    needs: auto-assign
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install @octokit/rest @slack/web-api
+
+      - name: Capture GitHub Context
+        run: echo '${{ toJson(github.event) }}' > github_context.json
+
+      - name: Run Bounty Bot
+        env:
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: node src/index.js github_context.json  
+
     ```
 
 
@@ -53,6 +79,8 @@
 - To assign yourself to an issue, comment `/assign` on the issue.
 - To unassign yourself to an issue, comment `/unassign` on the issue.
 - The action will automatically check for your current assignments and assign you to the issue if you are eligible.
+- To give assign the amount of bounty to an issue, comment `/bounty $X` on the issue
+- The action will automatically check for your current bounty amount and assign total amount to the issue.
 
 ## Contributing
 
