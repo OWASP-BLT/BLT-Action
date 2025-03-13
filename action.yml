@@ -1,5 +1,5 @@
 name: 'OWASP BLT-Action Auto-assign Issue and unassign after 5 days'
-description: 'Auto-assigns issues to users'
+description: 'Auto-assigns issues to users and manages timed bounties'
 inputs:
     repo-token:
         description: 'The GITHUB_TOKEN, needed to update the Issue'
@@ -7,6 +7,14 @@ inputs:
     repository:
         description: 'The GITHUB_REPOSITORY, needed to update the Issue'
         required: true
+    bounty-amount:
+        description: 'The amount of the bounty in dollars'
+        required: false
+        default: '0'
+    bounty-hours:
+        description: 'The duration in hours for the bounty deadline'
+        required: false
+        default: '24'
 
 runs:
     using: 'node20'

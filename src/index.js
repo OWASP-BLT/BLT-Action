@@ -7,14 +7,16 @@ const run = async () => {
 
         // Get necessary inputs
         const gitHubToken = core.getInput('repo-token', { required: true });
+        const repository = core.getInput('repository', { required: true }); // Use the provided repository input
+        const bountyAmount = parseFloat(core.getInput('bounty-amount')) || 0;
+        const bountyHours = parseInt(core.getInput('bounty-hours')) || 24;
         const octokit = github.getOctokit(gitHubToken);
 
-        const { eventName, payload, repo } = github.context;
+        const { eventName, payload } = github.context;
         const { issue, comment } = payload;
-        const repository = `${repo.owner}/${repo.repo}`;
-        const [owner, repoName] = repository.split('/');
+        const [owner, repoName] = repository.split('/'); // Split the provided repository into owner and repo
 
-        console.log(`Processing event: ${eventName} in repository ${repository}`);
+        console.log(`Processing event: ${eventName} in repository ${repository} with bounty $${bountyAmount} and ${bountyHours} hours deadline`);
 
         // Assignment keywords
         const assignKeywords = ['/assign', 'assign to me', 'assign this to me', 'assign it to me', 'assign me this', 'work on this', 'i can try fixing this', 'i am interested in doing this', 'be assigned this', 'i am interested in contributing'];
@@ -136,11 +138,12 @@ const run = async () => {
                         labels: ["assigned"]
                     });
 
+                    const bountyMessage = bountyAmount > 0 ? ` A bounty of $${bountyAmount} is available with a ${bountyHours}-hour deadline.` : '';
                     await octokit.issues.createComment({
                         owner,
                         repo: repoName,
                         issue_number: issue.number,
-                        body: `Hello @${assigneeLogin}! You've been assigned to [${repository} issue #${issue.number}](https://github.com/${repository}/issues/${issue.number}). You have 24 hours to complete a pull request.`
+                        body: `Hello @${assigneeLogin}! You've been assigned to [${repository} issue #${issue.number}](https://github.com/${repository}/issues/${issue.number}). You have ${bountyHours} hours to complete a pull request.${bountyMessage}`
                     });
 
                 } catch (error) {
@@ -149,7 +152,7 @@ const run = async () => {
             }
         }
 
-        console.log('Checking for stale assignments...');
+        console.log('Checking for stale assignments or expired bounties...');
         const presentDate = new Date();
 
         try {
@@ -162,10 +165,12 @@ const run = async () => {
             for (const event of events) {
                 if (event.issue.assignee && event.issue.state === "open") {
                     const timeSinceUpdate = presentDate.getTime() - new Date(event.issue.updated_at).getTime();
-                    const daysInactive = timeSinceUpdate / (1000 * 3600 * 24);
+                    const hoursInactive = timeSinceUpdate / (1000 * 3600);
 
-                    if (daysInactive > 1) {
-                        console.log(`Unassigning issue #${event.issue.number} due to inactivity`);
+                    const inactivityThreshold = bountyAmount > 0 ? bountyHours : 24;
+
+                    if (hoursInactive > inactivityThreshold) {
+                        console.log(`Unassigning issue #${event.issue.number} due to ${hoursInactive} hours of inactivity (threshold: ${inactivityThreshold} hours)`);
 
                         const issueDetails = await octokit.issues.get({
                             owner,
@@ -194,7 +199,7 @@ const run = async () => {
                                 owner,
                                 repo: repoName,
                                 issue_number: event.issue.number,
-                                body: `⏰ This issue has been automatically unassigned due to 24 hours of inactivity. The issue is now available for anyone to work on again.`
+                                body: `⏰ This issue has been automatically unassigned due to ${inactivityThreshold} hours of inactivity. The issue is now available for anyone to work on again.`
                             });
                         } else {
                             console.log(`Issue #${event.issue.number} does not have the "assigned" label, skipping unassign.`);
@@ -203,7 +208,7 @@ const run = async () => {
                 }
             }
         } catch (error) {
-            console.error("Error processing stale assignments:", error);
+            console.error("Error processing stale assignments or expired bounties:", error);
         }
 
     } catch (error) {
