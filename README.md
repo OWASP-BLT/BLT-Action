@@ -133,7 +133,7 @@ To use the `/giphy` command:
   - Makes the issue available for others
 
 #### Fun & Engagement Commands
-- **Post a GIF**: Comment `/giphy [search term]`
+  - Post a GIF: Comment `/giphy [search term]`
   - Example: `/giphy celebration`
   - Posts an animated GIF from Giphy matching your search term
   
