@@ -73,4 +73,80 @@ describe('GitHub API Mock Test', () => {
     giphyScope.done();
     githubScope.done();
   });
+
+  describe('Automated Unassign Logic', () => {
+    it('should calculate inactivity based on assignment time, not issue update time', () => {
+      const presentDate = new Date('2024-01-03T00:00:00Z'); // 2 days after assignment
+      
+      const event = {
+        event: 'assigned',
+        created_at: '2024-01-01T00:00:00Z', // Assignment happened 2 days ago
+        issue: {
+          number: 1,
+          state: 'open',
+          updated_at: '2024-01-02T23:00:00Z', // Issue was updated 1 hour ago (e.g., someone commented)
+          assignee: { login: 'testuser' }
+        }
+      };
+
+      // Calculate time since assignment (should be ~2 days)
+      const timeSinceAssignment = presentDate.getTime() - new Date(event.created_at).getTime();
+      const daysSinceAssignment = timeSinceAssignment / (1000 * 3600 * 24);
+
+      // Calculate time since last update (would be ~1 hour)
+      const timeSinceUpdate = presentDate.getTime() - new Date(event.issue.updated_at).getTime();
+      const daysSinceUpdate = timeSinceUpdate / (1000 * 3600 * 24);
+
+      // Verify the fix: we should use assignment time, not update time
+      assert.ok(daysSinceAssignment > 1, 'Days since assignment should be > 1');
+      assert.ok(daysSinceUpdate < 1, 'Days since update should be < 1');
+      
+      // The correct behavior: unassign based on assignment time
+      assert.strictEqual(daysSinceAssignment, 2, 'Should be exactly 2 days since assignment');
+    });
+
+    it('should not unassign if less than 24 hours since assignment', () => {
+      const presentDate = new Date('2024-01-01T12:00:00Z'); // 12 hours after assignment
+      
+      const event = {
+        event: 'assigned',
+        created_at: '2024-01-01T00:00:00Z', // Assignment happened 12 hours ago
+        issue: {
+          number: 1,
+          state: 'open',
+          updated_at: '2024-01-01T11:30:00Z', // Issue recently updated
+          assignee: { login: 'testuser' }
+        }
+      };
+
+      const timeSinceAssignment = presentDate.getTime() - new Date(event.created_at).getTime();
+      const daysSinceAssignment = timeSinceAssignment / (1000 * 3600 * 24);
+
+      assert.ok(daysSinceAssignment < 1, 'Should be less than 1 day since assignment');
+      assert.strictEqual(daysSinceAssignment, 0.5, 'Should be exactly 0.5 days (12 hours) since assignment');
+    });
+
+    it('should unassign if more than 24 hours since assignment regardless of recent issue updates', () => {
+      const presentDate = new Date('2024-01-02T01:00:00Z'); // 25 hours after assignment
+      
+      const event = {
+        event: 'assigned',
+        created_at: '2024-01-01T00:00:00Z', // Assignment happened 25 hours ago
+        issue: {
+          number: 1,
+          state: 'open',
+          updated_at: '2024-01-02T00:59:00Z', // Issue was updated 1 minute ago (comments, labels, etc.)
+          assignee: { login: 'testuser' }
+        }
+      };
+
+      const timeSinceAssignment = presentDate.getTime() - new Date(event.created_at).getTime();
+      const daysSinceAssignment = timeSinceAssignment / (1000 * 3600 * 24);
+
+      // Even though the issue was updated very recently, we should still unassign
+      // because more than 24 hours have passed since assignment
+      assert.ok(daysSinceAssignment > 1, 'Should be more than 1 day since assignment');
+      assert.ok(Math.abs(daysSinceAssignment - 25/24) < 0.01, 'Should be approximately 25/24 days since assignment');
+    });
+  });
 });

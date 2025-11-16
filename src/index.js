@@ -253,11 +253,11 @@ const run = async () => {
 
             for (const event of events) {
                 if (event.issue.assignee && event.issue.state === "open") {
-                    const timeSinceUpdate = presentDate.getTime() - new Date(event.issue.updated_at).getTime();
-                    const daysInactive = timeSinceUpdate / (1000 * 3600 * 24);
+                    const timeSinceAssignment = presentDate.getTime() - new Date(event.created_at).getTime();
+                    const daysInactive = timeSinceAssignment / (1000 * 3600 * 24);
 
                     if (daysInactive > 1) {
-                        console.log(`Unassigning issue #${event.issue.number} due to inactivity`);
+                        console.log(`Unassigning issue #${event.issue.number} due to ${daysInactive.toFixed(2)} days of inactivity since assignment`);
                         try {
                             const timelineEvents = await octokit.paginate(octokit.issues.listEventsForTimeline, {
                                 owner,
