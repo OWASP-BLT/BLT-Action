@@ -90,6 +90,18 @@ To use the `/giphy` command:
 2. Add it as a repository secret named `GIPHY_API_KEY`
 3. Reference it in your workflow as shown below
 
+#### GitHub Token Permissions for Tips
+
+**Important**: For the `/tip` command to work with automated payments, the `GITHUB_TOKEN` must have sufficient permissions to create and manage sponsorships via the GitHub GraphQL API. 
+
+**Note**: The default `GITHUB_TOKEN` provided by GitHub Actions typically has read-only access to sponsorship data. For automated tip functionality to work properly, you may need to:
+
+1. Use a Personal Access Token (PAT) with `admin:org` and `user` scopes
+2. Store it as a repository secret (e.g., `SPONSORS_TOKEN`)
+3. Use it in the workflow instead of `GITHUB_TOKEN`
+
+However, if you're using the default `GITHUB_TOKEN`, the action will gracefully handle permission errors and provide clear error messages to users.
+
 ### Installation
 
 1. **Add the Action to Your Repository**:
