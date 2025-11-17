@@ -393,21 +393,34 @@ const run = async () => {
                                 assignees: [event.issue.assignee.login]
                             });
 
-                            await octokit.issues.removeLabel({
-                                owner,
-                                repo: repoName,
-                                issue_number: event.issue.number,
-                                name: "assigned"
+                            const query = `type:pr state:open repo:${owner}/${repo} author:${event.issue.assignee.login} ${event.issue.number} in:body`;
+                            const searchResult = await octokit.search.issuesAndPullRequests({
+                                q: query
                             });
 
-                            await octokit.issues.createComment({
-                                owner,
-                                repo: repoName,
-                                issue_number: event.issue.number,
-                                body: `⏰ This issue has been automatically unassigned from ${event.issue.assignee.login} due to 24 hours of inactivity. The issue is now available for anyone to work on again.${attribution}`
-                            });
-                        } else {
-                            console.log(`Issue #${event.issue.number} does not have the "assigned" label, skipping unassign.`);
+                            if (searchResult.data.total_count > 0) {
+                                console.log(`Issue #${event.issue.number} has an open PR by ${event.issue.assignee.login}, skipping unassign.`);
+                            } else if (issueDetails.data.labels.length === 0) {  
+                                console.log('unassigning ' + event.issue.assignee.login + " from " + event.issue.number);
+
+                                await octokit.issues.removeAssignees({
+                                    owner,
+                                    repo,
+                                    issue_number: event.issue.number,
+                                    assignees: [event.issue.assignee.login],
+                                });
+
+                                // Add a comment about unassignment
+                                await octokit.issues.createComment({
+                                    owner,
+                                    repo,
+                                    issue_number: event.issue.number,
+                                    body: `⏰ This issue has been automatically unassigned due to 24 hours of inactivity. 
+                                    The issue is now available for anyone to work on again.`
+                                });
+                            } else {
+                                console.log(`Issue #${event.issue.number} has labels, skipping unassign.`);
+                            }
                         }
                     }
                 }
