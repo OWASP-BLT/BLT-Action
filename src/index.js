@@ -284,16 +284,43 @@ const run = async () => {
                         return;
                     }
 
-                    const amountValue = amountMatch[1];
-                    const sponsorUrl = `https://github.com/sponsors/${receiver}`;
+                    const amountValue = parseFloat(amountMatch[1]);
 
-                    console.log(`Generating tip link from ${sender} to ${receiver} for $${amountValue}`);
+                    console.log(`Processing automated tip from ${sender} to ${receiver} for $${amountValue}`);
 
                     try {
-                        // Check if the user has GitHub Sponsors enabled by making a HEAD request
-                        const sponsorCheckResponse = await axios.head(sponsorUrl).catch(() => null);
-                        
-                        if (!sponsorCheckResponse) {
+                        // Step 1: Get user's sponsorable ID and available tiers using GitHub GraphQL API
+                        const graphqlUrl = 'https://api.github.com/graphql';
+                        const queryUser = `
+                            query($login: String!) {
+                                user(login: $login) {
+                                    id
+                                    sponsorsListing {
+                                        id
+                                        tiers(first: 20) {
+                                            nodes {
+                                                id
+                                                monthlyPriceInCents
+                                                name
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        `;
+
+                        const userResponse = await axios.post(graphqlUrl, {
+                            query: queryUser,
+                            variables: { login: receiver }
+                        }, {
+                            headers: {
+                                'Authorization': `Bearer ${gitHubToken}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (userResponse.data.errors) {
+                            console.error('GraphQL errors:', userResponse.data.errors);
                             await octokit.issues.createComment({
                                 owner,
                                 repo: repoName,
@@ -303,24 +330,185 @@ const run = async () => {
                             return;
                         }
 
-                        // Post success message with sponsor link
-                        await octokit.issues.createComment({
-                            owner,
-                            repo: repoName,
-                            issue_number: issue ? issue.number : pull_request.number,
-                            body: `💰 **Tip Request from @${sender} to @${receiver}**\n\n` +
-                                `Amount: **$${amountValue}**\n\n` +
-                                `To complete this tip, please visit @${receiver}'s GitHub Sponsors page and select a one-time payment:\n\n` +
-                                `🔗 [Sponsor @${receiver}](${sponsorUrl})\n\n` +
-                                `*Note: GitHub Sponsors does not support automated payments via API. Please complete the transaction manually by selecting "One-time" on the sponsor page and entering your desired amount.*${attribution}`
+                        const userInfo = userResponse.data.data?.user;
+                        const sponsorableId = userInfo?.id;
+                        const sponsorsListing = userInfo?.sponsorsListing;
+
+                        if (!sponsorableId || !sponsorsListing) {
+                            await octokit.issues.createComment({
+                                owner,
+                                repo: repoName,
+                                issue_number: issue ? issue.number : pull_request.number,
+                                body: `⚠️ @${receiver} does not have GitHub Sponsors enabled. Please ask them to set up GitHub Sponsors first.\n\nLearn more: https://github.com/sponsors${attribution}`
+                            });
+                            return;
+                        }
+
+                        // Step 2: Find exact matching tier only (no rounding up)
+                        const tiers = sponsorsListing.tiers?.nodes || [];
+                        const targetAmountCents = Math.round(amountValue * 100);
+
+                        const matchingTier = tiers.find(tier => tier.monthlyPriceInCents === targetAmountCents);
+
+                        if (!matchingTier) {
+                            await octokit.issues.createComment({
+                                owner,
+                                repo: repoName,
+                                issue_number: issue ? issue.number : pull_request.number,
+                                body: `⚠️ No sponsorship tier found matching $${amountValue}. @${receiver} needs to create a tier with this exact amount.\n\nAvailable tiers: ${tiers.map(t => `$${(t.monthlyPriceInCents / 100).toFixed(2)}`).join(', ') || 'None'}\n\nLearn more: https://github.com/sponsors/${receiver}/sponsorships${attribution}`
+                            });
+                            return;
+                        }
+
+                        const tierId = matchingTier.id;
+
+                        // Step 3: Create sponsorship
+                        const createMutation = `
+                            mutation($sponsorableId: ID!, $tierId: ID!) {
+                                createSponsorship(input: {
+                                    sponsorableId: $sponsorableId
+                                    tierId: $tierId
+                                    privacyLevel: PUBLIC
+                                }) {
+                                    sponsorship {
+                                        id
+                                        tier {
+                                            monthlyPriceInCents
+                                            name
+                                        }
+                                        createdAt
+                                    }
+                                }
+                            }
+                        `;
+
+                        const createResponse = await axios.post(graphqlUrl, {
+                            query: createMutation,
+                            variables: {
+                                sponsorableId: sponsorableId,
+                                tierId: tierId
+                            }
+                        }, {
+                            headers: {
+                                'Authorization': `Bearer ${gitHubToken}`,
+                                'Content-Type': 'application/json'
+                            }
                         });
+
+                        if (createResponse.data.errors) {
+                            console.error('GraphQL errors creating sponsorship:', createResponse.data.errors);
+                            const errorMessages = createResponse.data.errors.map(err => err.message).join('; ');
+                            await octokit.issues.createComment({
+                                owner,
+                                repo: repoName,
+                                issue_number: issue ? issue.number : pull_request.number,
+                                body: `⚠️ Failed to create sponsorship: ${errorMessages}\n\nPlease try again later or visit https://github.com/sponsors/${receiver} to sponsor manually.${attribution}`
+                            });
+                            return;
+                        }
+
+                        const sponsorshipData = createResponse.data.data?.createSponsorship?.sponsorship;
+                        const sponsorshipId = sponsorshipData?.id;
+
+                        if (!sponsorshipId) {
+                            console.error('No sponsorship ID in response:', createResponse.data);
+                            await octokit.issues.createComment({
+                                owner,
+                                repo: repoName,
+                                issue_number: issue ? issue.number : pull_request.number,
+                                body: `⚠️ Failed to create sponsorship. Please ensure @${receiver} has GitHub Sponsors enabled.\n\nVisit: https://github.com/sponsors/${receiver}${attribution}`
+                            });
+                            return;
+                        }
+
+                        console.log(`Successfully created sponsorship: ${sponsorshipId}`);
+
+                        // Step 4: IMMEDIATELY cancel the sponsorship to prevent recurring charges
+                        const cancelMutation = `
+                            mutation($sponsorshipId: ID!) {
+                                cancelSponsorship(input: {
+                                    sponsorshipId: $sponsorshipId
+                                }) {
+                                    sponsorsTier {
+                                        monthlyPriceInCents
+                                        name
+                                    }
+                                }
+                            }
+                        `;
+
+                        // Attempt to cancel with retries
+                        let cancelSuccess = false;
+                        const maxRetries = 3;
+
+                        for (let attempt = 0; attempt < maxRetries; attempt++) {
+                            try {
+                                console.log(`Attempting to cancel sponsorship ${sponsorshipId} (attempt ${attempt + 1}/${maxRetries})`);
+
+                                const cancelResponse = await axios.post(graphqlUrl, {
+                                    query: cancelMutation,
+                                    variables: { sponsorshipId: sponsorshipId }
+                                }, {
+                                    headers: {
+                                        'Authorization': `Bearer ${gitHubToken}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+
+                                if (!cancelResponse.data.errors) {
+                                    console.log(`Successfully cancelled sponsorship ${sponsorshipId}`);
+                                    cancelSuccess = true;
+                                    break;
+                                } else {
+                                    console.error(`GraphQL errors cancelling sponsorship: ${JSON.stringify(cancelResponse.data.errors)}`);
+                                }
+
+                                // Wait before retry (exponential backoff)
+                                if (attempt < maxRetries - 1) {
+                                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+                                }
+                            } catch (cancelError) {
+                                console.error('Network error cancelling sponsorship:', cancelError.message);
+                                if (attempt < maxRetries - 1) {
+                                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+                                }
+                            }
+                        }
+
+                        // Post success or warning message
+                        if (cancelSuccess) {
+                            await octokit.issues.createComment({
+                                owner,
+                                repo: repoName,
+                                issue_number: issue ? issue.number : pull_request.number,
+                                body: `✅ **Tip Sent Successfully!**\n\n` +
+                                    `@${sender} sent **$${amountValue}** to @${receiver} via GitHub Sponsors! 🎉\n\n` +
+                                    `Transaction ID: \`${sponsorshipId}\`\n\n` +
+                                    `*This was a one-time payment processed automatically.*${attribution}`
+                            });
+                        } else {
+                            // CRITICAL: Cancellation failed - alert about recurring charge
+                            console.error(`CRITICAL: Failed to cancel sponsorship ${sponsorshipId} after ${maxRetries} attempts`);
+                            await octokit.issues.createComment({
+                                owner,
+                                repo: repoName,
+                                issue_number: issue ? issue.number : pull_request.number,
+                                body: `⚠️ **URGENT: Manual Action Required**\n\n` +
+                                    `A tip of **$${amountValue}** was initiated from @${sender} to @${receiver}, but automatic cancellation failed.\n\n` +
+                                    `**This means recurring charges will continue monthly!**\n\n` +
+                                    `Transaction ID: \`${sponsorshipId}\`\n\n` +
+                                    `Please immediately cancel this sponsorship manually at:\n` +
+                                    `🔗 https://github.com/sponsors/${receiver}\n\n` +
+                                    `Repository maintainers have been notified.${attribution}`
+                            });
+                        }
                     } catch (error) {
-                        console.error('Error processing tip command:', error);
+                        console.error('Error processing automated tip:', error);
                         await octokit.issues.createComment({
                             owner,
                             repo: repoName,
                             issue_number: issue ? issue.number : pull_request.number,
-                            body: `⚠️ Failed to process tip request. Please try again later or visit https://github.com/sponsors/${receiver} directly.${attribution}`
+                            body: `⚠️ Failed to process automated tip. Please try again later or visit https://github.com/sponsors/${receiver} to sponsor manually.\n\nError: ${error.message}${attribution}`
                         });
                     }
                 } else {

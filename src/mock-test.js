@@ -41,17 +41,151 @@ async function postGiphyComment(owner, repo, issueNumber, searchText, giphyApiKe
   }
 }
 
-async function postTipComment(owner, repo, issueNumber, receiver, amount) {
-  const sponsorUrl = `https://github.com/sponsors/${receiver}`;
+async function processAutomatedTip(owner, repo, issueNumber, sender, receiver, amount, gitHubToken) {
+  const graphqlUrl = 'https://api.github.com/graphql';
   
-  // Check if GitHub Sponsors is enabled
-  await axios.head(sponsorUrl);
+  // Step 1: Get user's sponsorable ID and tiers
+  const queryUser = `
+    query($login: String!) {
+      user(login: $login) {
+        id
+        sponsorsListing {
+          id
+          tiers(first: 20) {
+            nodes {
+              id
+              monthlyPriceInCents
+              name
+            }
+          }
+        }
+      }
+    }
+  `;
   
-  const url = `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
-  const response = await axios.post(url, {
-    body: `💰 **Tip Request from @sender to @${receiver}**\n\nAmount: **$${amount}**\n\nTo complete this tip, please visit @${receiver}'s GitHub Sponsors page and select a one-time payment:\n\n🔗 [Sponsor @${receiver}](${sponsorUrl})\n\n*Note: GitHub Sponsors does not support automated payments via API. Please complete the transaction manually by selecting "One-time" on the sponsor page and entering your desired amount.*`
+  const userResponse = await axios.post(graphqlUrl, {
+    query: queryUser,
+    variables: { login: receiver }
+  }, {
+    headers: {
+      'Authorization': `Bearer ${gitHubToken}`,
+      'Content-Type': 'application/json'
+    }
   });
-  return response.data;
+  
+  if (userResponse.data.errors) {
+    const url = `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
+    await axios.post(url, {
+      body: `⚠️ @${receiver} does not appear to have GitHub Sponsors enabled.`
+    });
+    return { status: 'success' };
+  }
+  
+  const userInfo = userResponse.data.data?.user;
+  const sponsorableId = userInfo?.id;
+  const sponsorsListing = userInfo?.sponsorsListing;
+  
+  if (!sponsorableId || !sponsorsListing) {
+    const url = `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
+    await axios.post(url, {
+      body: `⚠️ @${receiver} does not have GitHub Sponsors enabled.`
+    });
+    return { status: 'success' };
+  }
+  
+  // Step 2: Find matching tier
+  const tiers = sponsorsListing.tiers?.nodes || [];
+  const targetAmountCents = Math.round(amount * 100);
+  const matchingTier = tiers.find(tier => tier.monthlyPriceInCents === targetAmountCents);
+  
+  if (!matchingTier) {
+    const url = `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
+    await axios.post(url, {
+      body: `⚠️ No sponsorship tier found matching $${amount}.`
+    });
+    return { status: 'success' };
+  }
+  
+  // Step 3: Create sponsorship
+  const createMutation = `
+    mutation($sponsorableId: ID!, $tierId: ID!) {
+      createSponsorship(input: {
+        sponsorableId: $sponsorableId
+        tierId: $tierId
+        privacyLevel: PUBLIC
+      }) {
+        sponsorship {
+          id
+          tier {
+            monthlyPriceInCents
+            name
+          }
+          createdAt
+        }
+      }
+    }
+  `;
+  
+  const createResponse = await axios.post(graphqlUrl, {
+    query: createMutation,
+    variables: {
+      sponsorableId: sponsorableId,
+      tierId: matchingTier.id
+    }
+  }, {
+    headers: {
+      'Authorization': `Bearer ${gitHubToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  const sponsorshipId = createResponse.data.data?.createSponsorship?.sponsorship?.id;
+  
+  // Step 4: Cancel sponsorship
+  const cancelMutation = `
+    mutation($sponsorshipId: ID!) {
+      cancelSponsorship(input: {
+        sponsorshipId: $sponsorshipId
+      }) {
+        sponsorsTier {
+          monthlyPriceInCents
+          name
+        }
+      }
+    }
+  `;
+  
+  let cancelSuccess = false;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const cancelResponse = await axios.post(graphqlUrl, {
+      query: cancelMutation,
+      variables: { sponsorshipId: sponsorshipId }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${gitHubToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!cancelResponse.data.errors) {
+      cancelSuccess = true;
+      break;
+    }
+  }
+  
+  // Post result comment
+  const url = `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
+  if (cancelSuccess) {
+    await axios.post(url, {
+      body: `✅ **Tip Sent Successfully!**\n\n@${sender} sent **$${amount}** to @${receiver} via GitHub Sponsors! 🎉\n\nTransaction ID: \`${sponsorshipId}\``
+    });
+  } else {
+    await axios.post(url, {
+      body: `⚠️ **URGENT: Manual Action Required**\n\nA tip of **$${amount}** was initiated from @${sender} to @${receiver}, but automatic cancellation failed.\n\n**This means recurring charges will continue monthly!**`
+    });
+  }
+  
+  return { status: 'success' };
 }
 
 async function sendKudos(sender, receiver, comment, link) {
@@ -215,32 +349,235 @@ describe('GitHub API Mock Test', () => {
     });
   });
 
-  it('should post a tip comment with GitHub Sponsors link', async () => {
-    const owner = 'testowner';
-    const repo = 'testrepo';
-    const issueNumber = 1;
-    const receiver = 'testuser';
-    const amount = '10';
+  describe('Tip System with Auto-Payment', () => {
+    it('should successfully create and cancel sponsorship for automated tip', async () => {
+      const owner = 'testowner';
+      const repo = 'testrepo';
+      const issueNumber = 1;
+      const receiver = 'testuser';
+      const amount = 10;
+      const gitHubToken = 'test-token';
 
-    // Mock the HEAD request to check if sponsors page exists
-    const sponsorScope = nock('https://github.com')
-      .head(`/sponsors/${receiver}`)
-      .reply(200);
+      // Mock GraphQL query for user info
+      const graphqlScope1 = nock('https://api.github.com')
+        .post('/graphql', (body) => {
+          return body.query.includes('user(login: $login)');
+        })
+        .reply(200, {
+          data: {
+            user: {
+              id: 'user-id-123',
+              sponsorsListing: {
+                id: 'listing-id-456',
+                tiers: {
+                  nodes: [
+                    { id: 'tier-id-10', monthlyPriceInCents: 1000, name: '$10 tier' },
+                    { id: 'tier-id-20', monthlyPriceInCents: 2000, name: '$20 tier' }
+                  ]
+                }
+              }
+            }
+          }
+        });
 
-    const githubScope = nock('https://api.github.com')
-      .post(`/repos/${owner}/${repo}/issues/${issueNumber}/comments`, (body) => {
-        return body.body.includes('Tip Request') && 
-               body.body.includes(`@${receiver}`) && 
-               body.body.includes(`$${amount}`) &&
-               body.body.includes(`https://github.com/sponsors/${receiver}`);
-      })
-      .reply(201, { status: 'success' });
+      // Mock GraphQL mutation for creating sponsorship
+      const graphqlScope2 = nock('https://api.github.com')
+        .post('/graphql', (body) => {
+          return body.query.includes('createSponsorship');
+        })
+        .reply(200, {
+          data: {
+            createSponsorship: {
+              sponsorship: {
+                id: 'sponsorship-id-789',
+                tier: {
+                  monthlyPriceInCents: 1000,
+                  name: '$10 tier'
+                },
+                createdAt: '2023-01-01T00:00:00Z'
+              }
+            }
+          }
+        });
 
-    const result = await postTipComment(owner, repo, issueNumber, receiver, amount);
-    assert.strictEqual(result.status, 'success');
+      // Mock GraphQL mutation for cancelling sponsorship
+      const graphqlScope3 = nock('https://api.github.com')
+        .post('/graphql', (body) => {
+          return body.query.includes('cancelSponsorship');
+        })
+        .reply(200, {
+          data: {
+            cancelSponsorship: {
+              sponsorsTier: {
+                monthlyPriceInCents: 1000,
+                name: '$10 tier'
+              }
+            }
+          }
+        });
 
-    sponsorScope.done();
-    githubScope.done();
+      // Mock GitHub comment for success
+      const githubScope = nock('https://api.github.com')
+        .post(`/repos/${owner}/${repo}/issues/${issueNumber}/comments`, (body) => {
+          return body.body.includes('Tip Sent Successfully') && 
+                 body.body.includes(`$${amount}`) &&
+                 body.body.includes('sponsorship-id-789');
+        })
+        .reply(201, { status: 'success' });
+
+      const result = await processAutomatedTip(owner, repo, issueNumber, 'sender', receiver, amount, gitHubToken);
+      assert.strictEqual(result.status, 'success');
+
+      graphqlScope1.done();
+      graphqlScope2.done();
+      graphqlScope3.done();
+      githubScope.done();
+    });
+
+    it('should handle user without GitHub Sponsors enabled', async () => {
+      const owner = 'testowner';
+      const repo = 'testrepo';
+      const issueNumber = 1;
+      const receiver = 'testuser';
+      const amount = 10;
+      const gitHubToken = 'test-token';
+
+      // Mock GraphQL query returning error
+      const graphqlScope = nock('https://api.github.com')
+        .post('/graphql')
+        .reply(200, {
+          errors: [{ message: 'User not found' }]
+        });
+
+      const githubScope = nock('https://api.github.com')
+        .post(`/repos/${owner}/${repo}/issues/${issueNumber}/comments`, (body) => {
+          return body.body.includes('does not appear to have GitHub Sponsors enabled');
+        })
+        .reply(201, { status: 'success' });
+
+      const result = await processAutomatedTip(owner, repo, issueNumber, 'sender', receiver, amount, gitHubToken);
+      assert.strictEqual(result.status, 'success');
+
+      graphqlScope.done();
+      githubScope.done();
+    });
+
+    it('should handle no matching tier found', async () => {
+      const owner = 'testowner';
+      const repo = 'testrepo';
+      const issueNumber = 1;
+      const receiver = 'testuser';
+      const amount = 15; // No matching tier
+      const gitHubToken = 'test-token';
+
+      // Mock GraphQL query for user info with different tiers
+      const graphqlScope = nock('https://api.github.com')
+        .post('/graphql')
+        .reply(200, {
+          data: {
+            user: {
+              id: 'user-id-123',
+              sponsorsListing: {
+                id: 'listing-id-456',
+                tiers: {
+                  nodes: [
+                    { id: 'tier-id-10', monthlyPriceInCents: 1000, name: '$10 tier' },
+                    { id: 'tier-id-20', monthlyPriceInCents: 2000, name: '$20 tier' }
+                  ]
+                }
+              }
+            }
+          }
+        });
+
+      const githubScope = nock('https://api.github.com')
+        .post(`/repos/${owner}/${repo}/issues/${issueNumber}/comments`, (body) => {
+          return body.body.includes('No sponsorship tier found matching');
+        })
+        .reply(201, { status: 'success' });
+
+      const result = await processAutomatedTip(owner, repo, issueNumber, 'sender', receiver, amount, gitHubToken);
+      assert.strictEqual(result.status, 'success');
+
+      graphqlScope.done();
+      githubScope.done();
+    });
+
+    it('should alert when cancellation fails', async () => {
+      const owner = 'testowner';
+      const repo = 'testrepo';
+      const issueNumber = 1;
+      const receiver = 'testuser';
+      const amount = 10;
+      const gitHubToken = 'test-token';
+
+      // Mock GraphQL query for user info
+      const graphqlScope1 = nock('https://api.github.com')
+        .post('/graphql', (body) => {
+          return body.query.includes('user(login: $login)');
+        })
+        .reply(200, {
+          data: {
+            user: {
+              id: 'user-id-123',
+              sponsorsListing: {
+                id: 'listing-id-456',
+                tiers: {
+                  nodes: [
+                    { id: 'tier-id-10', monthlyPriceInCents: 1000, name: '$10 tier' }
+                  ]
+                }
+              }
+            }
+          }
+        });
+
+      // Mock GraphQL mutation for creating sponsorship
+      const graphqlScope2 = nock('https://api.github.com')
+        .post('/graphql', (body) => {
+          return body.query.includes('createSponsorship');
+        })
+        .reply(200, {
+          data: {
+            createSponsorship: {
+              sponsorship: {
+                id: 'sponsorship-id-789',
+                tier: {
+                  monthlyPriceInCents: 1000,
+                  name: '$10 tier'
+                },
+                createdAt: '2023-01-01T00:00:00Z'
+              }
+            }
+          }
+        });
+
+      // Mock GraphQL mutation for cancelling sponsorship (fail multiple times)
+      const graphqlScope3 = nock('https://api.github.com')
+        .post('/graphql', (body) => {
+          return body.query.includes('cancelSponsorship');
+        })
+        .times(3)
+        .reply(200, {
+          errors: [{ message: 'Cancellation failed' }]
+        });
+
+      // Mock GitHub comment for failure alert
+      const githubScope = nock('https://api.github.com')
+        .post(`/repos/${owner}/${repo}/issues/${issueNumber}/comments`, (body) => {
+          return body.body.includes('URGENT: Manual Action Required') && 
+                 body.body.includes('recurring charges will continue');
+        })
+        .reply(201, { status: 'success' });
+
+      const result = await processAutomatedTip(owner, repo, issueNumber, 'sender', receiver, amount, gitHubToken);
+      assert.strictEqual(result.status, 'success');
+
+      graphqlScope1.done();
+      graphqlScope2.done();
+      graphqlScope3.done();
+      githubScope.done();
+    });
   });
 
   describe('Kudos System', () => {
