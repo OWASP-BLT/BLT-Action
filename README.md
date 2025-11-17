@@ -35,10 +35,11 @@
   - Integrates with OWASP BLT team API to track and record kudos
   - Provides confirmation when kudos are successfully sent
   - Supports custom appreciation messages
-- **Tip System**: Support contributors financially using `/tip @username $amount` to send tips via GitHub Sponsors.
-  - Generates direct links to contributor's GitHub Sponsors page
-  - Validates GitHub Sponsors availability for the recipient
-  - Provides clear instructions for completing one-time payments
+- **Tip System**: Support contributors financially using `/tip @username $amount` to automatically send tips via GitHub Sponsors.
+  - Automatically creates and processes one-time payments through GitHub Sponsors API
+  - Validates GitHub Sponsors availability and matching tier for the recipient
+  - Creates sponsorship and immediately cancels to achieve one-time payment effect
+  - Includes automatic retry logic with alerts if cancellation fails
   - Works on both issues and pull request comments
 
 ### Compatibility & Branding
@@ -78,7 +79,7 @@ The BLT-Action operates through multiple triggers:
 
 | Parameter | Description |
 |-----------|-------------|
-| `repo-token` | GitHub token for authentication (use `${{ secrets.GITHUB_TOKEN }}`) |
+| `repo-token` | GitHub token for authentication (use `${{ secrets.GITHUB_TOKEN }}`) - Must have `admin:org` and `user` scopes for tip functionality |
 | `repository` | Repository identifier (use `${{ github.repository }}`) |
 | `giphy-api-key` | API key for Giphy integration (required for `/giphy` command) |
 
@@ -88,6 +89,18 @@ To use the `/giphy` command:
 1. Get a free API key from [Giphy Developers](https://developers.giphy.com/)
 2. Add it as a repository secret named `GIPHY_API_KEY`
 3. Reference it in your workflow as shown below
+
+#### GitHub Token Permissions for Tips
+
+**Important**: For the `/tip` command to work with automated payments, the `GITHUB_TOKEN` must have sufficient permissions to create and manage sponsorships via the GitHub GraphQL API. 
+
+**Note**: The default `GITHUB_TOKEN` provided by GitHub Actions typically has read-only access to sponsorship data. For automated tip functionality to work properly, you may need to:
+
+1. Use a Personal Access Token (PAT) with `admin:org` and `user` scopes
+2. Store it as a repository secret (e.g., `SPONSORS_TOKEN`)
+3. Use it in the workflow instead of `GITHUB_TOKEN`
+
+However, if you're using the default `GITHUB_TOKEN`, the action will gracefully handle permission errors and provide clear error messages to users.
 
 ### Installation
 
@@ -189,12 +202,13 @@ To use the `/giphy` command:
 
 - **Send Tips**: Comment `/tip @username $amount`
   - Example: `/tip @contributor $10`
-  - Generates a direct link to the contributor's GitHub Sponsors page
+  - Automatically sends money via GitHub Sponsors API as a one-time payment
   - Supports any amount (e.g., `$5`, `$10.50`, `$100`)
-  - Validates that the recipient has GitHub Sponsors enabled
-  - Provides clear instructions for completing the one-time payment
+  - Validates that the recipient has GitHub Sponsors enabled with matching tier
+  - Creates and immediately cancels sponsorship to achieve one-time payment effect
   - Works on both issues and pull request comments
-  - Note: Due to GitHub API limitations, tips cannot be sent automatically and require manual completion on the GitHub Sponsors page
+  - Includes automatic retry logic and alerts if cancellation fails
+  - Note: Recipient must have a GitHub Sponsors tier matching the exact tip amount
 
 #### Automated Features
 - **Stale Issue Unassignment**: If an issue remains inactive for 24 hours without a linked pull request, the action automatically:
