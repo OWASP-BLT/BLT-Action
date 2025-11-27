@@ -358,7 +358,8 @@ describe('GitHub API Mock Test', () => {
         '⚠️ Invalid /kudos command format.\n\nUsage: `/kudos @username [optional comment]`\n\nExample: `/kudos @alice Great work on the PR!`',
         '⏰ This issue has been automatically unassigned from user due to 24 hours of inactivity. The issue is now available for anyone to work on again.',
         '💰 **Tip Request from @sender to @receiver**\n\nAmount: **$10**\n\nTo complete this tip, please visit @receiver\'s GitHub Sponsors page and select a one-time payment:\n\n🔗 [Sponsor @receiver](https://github.com/sponsors/receiver)\n\n*Note: GitHub Sponsors does not support automated payments via API. Please complete the transaction manually by selecting "One-time" on the sponsor page and entering your desired amount.*',
-        '⚠️ Invalid /tip command format. Use: `/tip @username $amount`\n\nExample: `/tip @contributor $10`'
+        '⚠️ Invalid /tip command format. Use: `/tip @username $amount`\n\nExample: `/tip @contributor $10`',
+        '@requestingUser ⚠️ This issue is already assigned to @currentAssignee. Please pick another issue.'
       ];
 
       // Each comment should end with the attribution

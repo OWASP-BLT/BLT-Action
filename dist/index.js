@@ -43887,7 +43887,7 @@ const run = async () => {
                                 owner,
                                 repo: repoName,
                                 issue_number: issue.number,
-                                body: `⚠️ This issue is already assigned to @${currentAssignee}. Please pick another issue.`
+                                body: `@${assigneeLogin} ⚠️ This issue is already assigned to @${currentAssignee}. Please pick another issue.${attribution}`
                             });
 
                             return; // prevent assignment
