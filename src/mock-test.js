@@ -449,4 +449,93 @@ describe('GitHub API Mock Test', () => {
       scope.done();
     });
   });
+  describe('Human commenter guard for /assign and /unassign', () => {
+    // Mirror the production logic in src/index.js
+    function isHumanCommenter(comment) {
+      return (
+        comment &&
+        comment.user &&
+        comment.user.type === 'User'
+      );
+    }
+
+    it('treats normal GitHub users as human commenters', () => {
+      const humanAssignComment = {
+        body: '/assign',
+        user: { login: 'alice', type: 'User' },
+      };
+
+      const humanUnassignComment = {
+        body: '/unassign',
+        user: { login: 'alice', type: 'User' },
+      };
+
+      assert.strictEqual(isHumanCommenter(humanAssignComment), true);
+      assert.strictEqual(isHumanCommenter(humanUnassignComment), true);
+    });
+
+    it('treats bots and GitHub Apps as non-human commenters', () => {
+      const botComment = {
+        body: '/assign',
+        user: { login: 'coderabbitai', type: 'Bot' },
+      };
+
+      const appComment = {
+        body: '/unassign',
+        user: { login: 'some-app[bot]', type: 'App' },
+      };
+
+      assert.strictEqual(isHumanCommenter(botComment), false);
+      assert.strictEqual(isHumanCommenter(appComment), false);
+    });
+
+    it('does not allow bots to trigger /assign or /unassign commands', () => {
+      const botAssignComment = {
+        body: '/assign',
+        user: { login: 'coderabbitai', type: 'Bot' },
+      };
+
+      const botUnassignComment = {
+        body: '/unassign',
+        user: { login: 'coderabbitai', type: 'Bot' },
+      };
+
+      const assignBody = (botAssignComment.body || '').toLowerCase();
+      const unassignBody = (botUnassignComment.body || '').toLowerCase();
+
+      const shouldAssign = assignBody.startsWith('/assign');
+      const shouldUnassign = unassignBody.startsWith('/unassign');
+
+      // Commands are present…
+      assert.strictEqual(shouldAssign, true);
+      assert.strictEqual(shouldUnassign, true);
+
+      // …but the human guard blocks them.
+      assert.strictEqual(isHumanCommenter(botAssignComment), false);
+      assert.strictEqual(isHumanCommenter(botUnassignComment), false);
+    });
+
+    it('allows human users to trigger /assign and /unassign commands', () => {
+      const humanAssignComment = {
+        body: '/assign',
+        user: { login: 'alice', type: 'User' },
+      };
+
+      const humanUnassignComment = {
+        body: '/unassign',
+        user: { login: 'alice', type: 'User' },
+      };
+
+      const assignBody = (humanAssignComment.body || '').toLowerCase();
+      const unassignBody = (humanUnassignComment.body || '').toLowerCase();
+
+      const shouldAssign = assignBody.startsWith('/assign');
+      const shouldUnassign = unassignBody.startsWith('/unassign');
+
+      assert.strictEqual(shouldAssign, true);
+      assert.strictEqual(shouldUnassign, true);
+      assert.strictEqual(isHumanCommenter(humanAssignComment), true);
+      assert.strictEqual(isHumanCommenter(humanUnassignComment), true);
+    });
+  });
 });

@@ -41,12 +41,12 @@ const run = async () => {
                 comment &&
                 comment.user &&
                 comment.user.type === 'User';
-            
+            const login = comment && comment.user ? comment.user.login : 'unknown';
+            const type = comment && comment.user ? comment.user.type : 'unknown';
+
             if (shouldUnassign) {
                 // 🔒 Ignore unassign requests from bots / GitHub Apps
                 if (!isHumanCommenter) {
-                    const login = comment && comment.user ? comment.user.login : 'unknown';
-                    const type = comment && comment.user ? comment.user.type : 'unknown';
                     console.log(
                         `Skipping /unassign from non-user account: ${login} (type=${type})`
                     );
@@ -111,8 +111,6 @@ const run = async () => {
             if (shouldAssign) {
                 // 🔒 Ignore assign requests from bots / GitHub Apps
                 if (!isHumanCommenter) {
-                    const login = comment && comment.user ? comment.user.login : 'unknown';
-                    const type = comment && comment.user ? comment.user.type : 'unknown';
                     console.log(
                         `Skipping /assign from non-user account: ${login} (type=${type})`
                     );
