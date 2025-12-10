@@ -455,7 +455,7 @@ describe('GitHub API Mock Test', () => {
       return (
         comment &&
         comment.user &&
-        comment.user.type === 'User' || comment.user.type === 'Mannequin'
+        (comment.user.type === 'User' || comment.user.type === 'Mannequin')
       );
     }
 
