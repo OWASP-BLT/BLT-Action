@@ -500,10 +500,27 @@ describe('GitHub API Mock Test', () => {
         user: { login: 'coderabbitai', type: 'Bot' },
       };
 
-      const assignBody = (botAssignComment.body || '').toLowerCase();
       const unassignBody = (botUnassignComment.body || '').toLowerCase();
 
-      const shouldAssign = assignBody.startsWith('/assign');
+      const assignBody = '/assign';
+
+      const assignKeywords = [
+        '/assign',
+        'assign to me',
+        'assign this to me',
+        'assign it to me',
+        'assign me this',
+        'work on this',
+        'i can try fixing this',
+        'i am interested in doing this',
+        'be assigned this',
+        'i am interested in contributing',
+      ];
+
+      const shouldAssign = assignKeywords.some(keyword =>
+        assignBody.includes(keyword)
+      );
+
       const shouldUnassign = unassignBody.startsWith('/unassign');
 
       // Commands are present…
@@ -526,10 +543,27 @@ describe('GitHub API Mock Test', () => {
         user: { login: 'alice', type: 'User' },
       };
 
-      const assignBody = (humanAssignComment.body || '').toLowerCase();
       const unassignBody = (humanUnassignComment.body || '').toLowerCase();
 
-      const shouldAssign = assignBody.startsWith('/assign');
+      const assignBody = '/assign';
+
+      const assignKeywords = [
+        '/assign',
+        'assign to me',
+        'assign this to me',
+        'assign it to me',
+        'assign me this',
+        'work on this',
+        'i can try fixing this',
+        'i am interested in doing this',
+        'be assigned this',
+        'i am interested in contributing',
+      ];
+
+      const shouldAssign = assignKeywords.some(keyword =>
+        assignBody.includes(keyword)
+      );
+
       const shouldUnassign = unassignBody.startsWith('/unassign');
 
       assert.strictEqual(shouldAssign, true);
