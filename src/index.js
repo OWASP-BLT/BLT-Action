@@ -40,7 +40,7 @@ const run = async () => {
             const isHumanCommenter =
                 comment &&
                 comment.user &&
-                comment.user.type === 'User';
+                (comment.user.type === 'User' || comment.user.type === 'Mannequin');
             const login = comment && comment.user ? comment.user.login : 'unknown';
             const type = comment && comment.user ? comment.user.type : 'unknown';
 
