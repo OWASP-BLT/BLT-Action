@@ -1,49 +1,213 @@
 name: "BLT Bounty Processor"
-description: "Minimal test composite action to verify YAML is valid."
+description: "Composite action that creates a bounty in BLT, reads total, updates labels, and posts a confirmation comment."
 
 inputs:
   api_base_url:
-    description: "Base URL for BLT API"
-    required: false
-    default: ""
+    description: "Base URL for BLT API (e.g. https://<ngrok-id>.ngrok-free.app/api)"
+    required: true
   blt_api_token:
-    description: "BLT API token"
-    required: false
-    default: ""
+    description: "BLT API token (Token <value>)"
+    required: true
   issue_number:
     description: "GitHub issue number"
-    required: false
-    default: ""
+    required: true
   issue_url:
-    description: "Issue URL"
-    required: false
-    default: ""
+    description: "Full issue URL (e.g. https://github.com/owner/repo/issues/123)"
+    required: true
   amount:
-    description: "Bounty amount"
-    required: false
-    default: "0"
+    description: "Bounty amount (e.g. 10 or 12.50)"
+    required: true
   commenter:
-    description: "GitHub username"
-    required: false
-    default: ""
+    description: "GitHub username of the bounty sponsor"
+    required: true
   owner:
-    description: "Repo owner"
-    required: false
-    default: ""
+    description: "Repository owner"
+    required: true
   repo:
-    description: "Repo name"
-    required: false
-    default: ""
+    description: "Repository name"
+    required: true
   github_token:
-    description: "GitHub token"
-    required: false
-    default: ""
+    description: "GITHUB_TOKEN used for GitHub API operations"
+    required: true
 
 runs:
   using: "composite"
   steps:
-    - name: Sanity check – print inputs
+    # 1) Validate bounty amount format
+    - name: Validate amount
+      id: validate
       shell: bash
       run: |
-        echo "BLT Bounty Processor composite action loaded correctly."
-        echo "Issue: ${{ inputs.issue_url }}  Amount: ${{ inputs.amount }}"
+        set -euo pipefail
+        AMOUNT="${{ inputs.amount }}"
+        if [[ -z "$AMOUNT" ]]; then
+          echo "Amount is empty" >&2
+          exit 1
+        fi
+        if ! echo "$AMOUNT" | grep -Eq '^[0-9]+(\.[0-9]{1,2})?$'; then
+          echo "Invalid amount format: $AMOUNT" >&2
+          exit 1
+        fi
+        echo "amount=$AMOUNT" >> "$GITHUB_OUTPUT"
+
+    # 2) Create bounty via BLT API
+    - name: Create bounty via BLT API
+      id: create_bounty
+      shell: bash
+      env:
+        API_BASE_URL: ${{ inputs.api_base_url }}
+        BLT_API_TOKEN: ${{ inputs.blt_api_token }}
+        ISSUE_URL: ${{ inputs.issue_url }}
+        AMOUNT: ${{ inputs.amount }}
+        COMMENTER: ${{ inputs.commenter }}
+      run: |
+        set -euo pipefail
+
+        payload=$(python - <<'PY'
+        import json, os
+        data = {
+            "github_issue_url": os.environ["ISSUE_URL"],
+            "amount": os.environ["AMOUNT"],
+            "github_username": os.environ["COMMENTER"],
+        }
+        print(json.dumps(data))
+        PY
+        )
+
+        echo "Payload: $payload"
+
+        resp=$(curl -sS -X POST \
+          -H "Authorization: Token $BLT_API_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "$payload" \
+          "$API_BASE_URL/bounties/" || true)
+
+        echo "BLT create bounty response: $resp"
+
+        echo "create_response<<EOF" >> "$GITHUB_OUTPUT"
+        echo "$resp" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
+
+    # 3) Query total bounty for this issue from BLT API
+    - name: Query total bounty for issue from BLT API
+      id: get_total
+      shell: bash
+      env:
+        API_BASE_URL: ${{ inputs.api_base_url }}
+        BLT_API_TOKEN: ${{ inputs.blt_api_token }}
+        ISSUE_URL: ${{ inputs.issue_url }}
+        FALLBACK_AMOUNT: ${{ inputs.amount }}
+      run: |
+        set -euo pipefail
+
+        ISSUE_URL_ENC=$(python - <<'PY'
+        import urllib.parse, os
+        print(urllib.parse.quote(os.environ["ISSUE_URL"], safe=""))
+        PY
+        )
+
+        resp=$(curl -sS \
+          -H "Authorization: Token $BLT_API_TOKEN" \
+          "$API_BASE_URL/bounties/issue-total/?github_issue_url=$ISSUE_URL_ENC" \
+          || true)
+
+        echo "BLT total response: $resp"
+
+        total=$(python - <<'PY'
+        import json, os, sys
+        fallback = os.environ.get("FALLBACK_AMOUNT", "0")
+        try:
+            data = json.load(sys.stdin)
+            value = data.get("total")
+            if value in (None, ""):
+                print(fallback)
+            else:
+                print(str(value))
+        except Exception:
+            print(fallback)
+        PY
+        <<<"$resp")
+
+        echo "Resolved total bounty: $total"
+        echo "total=$total" >> "$GITHUB_OUTPUT"
+
+    # 4) Update labels and post confirmation comment on GitHub
+    - name: Update issue labels and post confirmation comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const owner = "${{ inputs.owner }}";
+          const repo = "${{ inputs.repo }}";
+          const issue_number = parseInt("${{ inputs.issue_number }}", 10);
+          const total = "${{ steps.get_total.outputs.total }}";
+          const commenter = "${{ inputs.commenter }}";
+          const issue_url = "${{ inputs.issue_url }}";
+
+          const bountyLabelPattern = /^\$\d+(?:\.\d{1,2})?\s+Bounty$/i;
+
+          // 1) Remove existing "$X Bounty" labels
+          const existing = await github.rest.issues.listLabelsOnIssue({
+            owner,
+            repo,
+            issue_number,
+          });
+
+          for (const label of existing.data) {
+            if (bountyLabelPattern.test(label.name)) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number,
+                  name: label.name,
+                });
+              } catch (error) {
+                core.warning(`Failed to remove label ${label.name}: ${error}`);
+              }
+            }
+          }
+
+          // 2) Ensure new label exists
+          const newLabelName = `$${total} Bounty`;
+
+          try {
+            await github.rest.issues.createLabel({
+              owner,
+              repo,
+              name: newLabelName,
+              color: "ffd700",
+              description: `Total bounty: $${total}`,
+            });
+          } catch (error) {
+            core.info(`Label may already exist: ${error}`);
+          }
+
+          // 3) Attach label to the issue
+          try {
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number,
+              labels: [newLabelName],
+            });
+          } catch (error) {
+            core.warning(`Failed to add label ${newLabelName}: ${error}`);
+          }
+
+          // 4) Post confirmation comment
+          const body =
+            `💰 A bounty has been added!\n` +
+            `This issue now has a total bounty of $${total} thanks to @${commenter}.\n\n` +
+            `Issue: ${issue_url}`;
+
+          try {
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
+          } catch (error) {
+            core.warning(`Failed to post confirmation comment: ${error}`);
+          }
