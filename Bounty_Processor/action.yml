@@ -76,7 +76,7 @@ runs:
 
         echo "Payload: $payload"
 
-        resp=$(curl.exe -sS -X POST \
+        resp=$(curl -sS -X POST \
           -H "Authorization: Token $BLT_API_TOKEN" \
           -H "Content-Type: application/json" \
           -d "$payload" \
@@ -106,7 +106,7 @@ runs:
         PY
         )
 
-        resp=$(curl.exe -sS \
+        resp=$(curl -sS \
           -H "Authorization: Token $BLT_API_TOKEN" \
           "$API_BASE_URL/bounties/issue-total/?github_issue_url=$ISSUE_URL_ENC" \
           || true)
