@@ -91,6 +91,7 @@ runs:
           "${API_BASE_URL%/}/bounties/")
         rm -f "$tmpfile"
 
+
         # Separate response body and status code
         http_body=$(printf '%s\n' "$response_and_status" | sed '$d')
         http_status=$(printf '%s\n' "$response_and_status" | tail -n1)
@@ -128,7 +129,7 @@ runs:
         http_response=$(mktemp)
         http_code=$(curl -sS -w "%{http_code}" -o "$http_response" \
           -H "Authorization: Token $BLT_API_TOKEN" \
-          "$API_BASE_URL/bounties/issue-total/?github_issue_url=$ISSUE_URL_ENC")
+          "${API_BASE_URL%/}/bounties/issue-total/?github_issue_url=$ISSUE_URL_ENC")
 
         if [ "$http_code" -ne 200 ]; then
           echo "Warning: BLT API /issue-total failed with status $http_code. Falling back to validated amount."
