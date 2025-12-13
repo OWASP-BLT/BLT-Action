@@ -6,7 +6,7 @@ inputs:
     description: "Base URL for BLT API (e.g. https://<ngrok-id>.ngrok-free.app/api)"
     required: true
   blt_api_token:
-    description: "BLT API token (Token <value>)"
+    description: "BLT API token value (WITHOUT the 'Token ' prefix)"
     required: true
   issue_number:
     description: "GitHub issue number"
@@ -58,7 +58,7 @@ runs:
         API_BASE_URL: ${{ inputs.api_base_url }}
         BLT_API_TOKEN: ${{ inputs.blt_api_token }}
         ISSUE_URL: ${{ inputs.issue_url }}
-        AMOUNT: ${{ inputs.amount }}
+        AMOUNT: ${{ steps.validate.outputs.amount }}
         COMMENTER: ${{ inputs.commenter }}
       run: |
         set -euo pipefail
@@ -74,18 +74,34 @@ runs:
         PY
         )
 
-        echo "Payload: $payload"
+        echo "Payload prepared."
 
-        resp=$(curl -sS -X POST \
+        tmpfile=$(mktemp)
+        printf '%s' "$payload" > "$tmpfile"
+
+        response_and_status=$(curl -sS -w "\n%{http_code}" -X POST \
           -H "Authorization: Token $BLT_API_TOKEN" \
           -H "Content-Type: application/json" \
-          -d "$payload" \
-          "$API_BASE_URL/bounties/" || true)
+          --data-binary @"$tmpfile" \
+          "$API_BASE_URL/bounties/")
 
-        echo "BLT create bounty response: $resp"
+        rm -f "$tmpfile"
+
+
+        # Separate response body and status code
+        http_body=$(printf '%s\n' "$response_and_status" | sed '$d')
+        http_status=$(printf '%s\n' "$response_and_status" | tail -n1)
+
+        echo "BLT create bounty request completed with status: $http_status"
+
+        # Check if status code is 2xx
+        if [[ ! "$http_status" =~ ^2 ]]; then
+          echo "Error: BLT API returned status $http_status" >&2
+          exit 1
+        fi
 
         echo "create_response<<EOF" >> "$GITHUB_OUTPUT"
-        echo "$resp" >> "$GITHUB_OUTPUT"
+        echo "$http_body" >> "$GITHUB_OUTPUT"
         echo "EOF" >> "$GITHUB_OUTPUT"
 
     # 3) Query total bounty for this issue from BLT API
@@ -96,7 +112,7 @@ runs:
         API_BASE_URL: ${{ inputs.api_base_url }}
         BLT_API_TOKEN: ${{ inputs.blt_api_token }}
         ISSUE_URL: ${{ inputs.issue_url }}
-        FALLBACK_AMOUNT: ${{ inputs.amount }}
+        FALLBACK_AMOUNT: ${{ steps.validate.outputs.amount }}
       run: |
         set -euo pipefail
 
@@ -106,19 +122,28 @@ runs:
         PY
         )
 
-        resp=$(curl -sS \
+        http_response=$(mktemp)
+        http_code=$(curl -sS -w "%{http_code}" -o "$http_response" \
           -H "Authorization: Token $BLT_API_TOKEN" \
-          "$API_BASE_URL/bounties/issue-total/?github_issue_url=$ISSUE_URL_ENC" \
-          || true)
+          "$API_BASE_URL/bounties/issue-total/?github_issue_url=$ISSUE_URL_ENC")
 
-        echo "BLT total response: $resp"
+        if [ "$http_code" -ne 200 ]; then
+          echo "Warning: BLT API /issue-total failed with status $http_code. Falling back to validated amount."
+          resp=""
+        else
+          resp=$(cat "$http_response")
+        fi
+
+        rm -f "$http_response"
+        echo "BLT total request completed with status: $http_code"
+
 
         total=$(python - <<'PY'
         import json, os, sys
         fallback = os.environ.get("FALLBACK_AMOUNT", "0")
         try:
             data = json.load(sys.stdin)
-            value = data.get("total")
+            value = data.get("total_amount", data.get("total"))
             if value in (None, ""):
                 print(fallback)
             else:
@@ -134,17 +159,34 @@ runs:
     # 4) Update labels and post confirmation comment on GitHub
     - name: Update issue labels and post confirmation comment
       uses: actions/github-script@v7
+      env:
+        OWNER: ${{ inputs.owner }}
+        REPO: ${{ inputs.repo }}
+        ISSUE_NUMBER: ${{ inputs.issue_number }}
+        TOTAL: ${{ steps.get_total.outputs.total }}
+        VALIDATED_AMOUNT: ${{ steps.validate.outputs.amount }}
+        COMMENTER: ${{ inputs.commenter }}
+        ISSUE_URL: ${{ inputs.issue_url }}
       with:
         github-token: ${{ inputs.github_token }}
         script: |
-          const owner = "${{ inputs.owner }}";
-          const repo = "${{ inputs.repo }}";
-          const issue_number = parseInt("${{ inputs.issue_number }}", 10);
-          const total = "${{ steps.get_total.outputs.total }}";
-          const commenter = "${{ inputs.commenter }}";
-          const issue_url = "${{ inputs.issue_url }}";
+          const core = require('@actions/core');
 
-          const bountyLabelPattern = /^\$\d+(?:\.\d{1,2})?\s+Bounty$/i;
+          const owner = process.env.OWNER;
+          const repo = process.env.REPO;
+          const issue_number = parseInt(process.env.ISSUE_NUMBER, 10);
+          let total = process.env.TOTAL;
+          const commenter = process.env.COMMENTER;
+          const issue_url = process.env.ISSUE_URL;
+
+          // Validate/sanitize total coming from BLT API
+          const amountPattern = /^\d+(?:\.\d{1,2})?$/;
+          if (!amountPattern.test(total)) {
+            core.warning(`Invalid total from BLT API: "${total}", falling back to validated input amount.`);
+            total = process.env.VALIDATED_AMOUNT;
+          }
+
+          const bountyLabelPattern = /^\$\d+(?:\.\d{1,2})?\s+Bounty$/;
 
           // 1) Remove existing "$X Bounty" labels
           const existing = await github.rest.issues.listLabelsOnIssue({
@@ -209,5 +251,5 @@ runs:
               body,
             });
           } catch (error) {
-            core.warning(`Failed to post confirmation comment: ${error}`);
+            core.setFailed(`Failed to post confirmation comment: ${error}`);
           }

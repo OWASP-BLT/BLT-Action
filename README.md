@@ -40,6 +40,10 @@
   - Validates GitHub Sponsors availability for the recipient
   - Provides clear instructions for completing one-time payments
   - Works on both issues and pull request comments
+- **Bounty Management**: Track monetary bounties on issues using a `/bounty` command.
+  - Comment `/bounty $25` (or `/bounty 25`) on an issue to create or update a bounty in the BLT backend.
+  - Automatically maintains a `$X Bounty` label reflecting the **total** bounty on that issue.
+  - Works together with the BLT backend and a matching `/bounty` Slack command, so teams can create bounties from GitHub or Slack.
 
 ### Compatibility & Branding
 - **Issue and PR Support**: Works on both issue comments and pull request review comments for maximum flexibility.
@@ -148,7 +152,51 @@ To use the `/giphy` command:
               giphy-api-key: ${{ secrets.GIPHY_API_KEY }}
     
     ```
+    
+2. ### Example: Enable `/bounty` support with `Bounty_Processor`
 
+```yml
+name: Bounty Command
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  bounty-command:
+    # Only run when a top-level issue comment starts with /bounty
+    if: >
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, '/bounty')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse /bounty amount from comment
+        id: parse
+        shell: bash
+        run: |
+          body=$(jq -r '.comment.body' "$GITHUB_EVENT_PATH")
+          # Expected formats:
+          #   /bounty 25
+          #   /bounty $25
+          raw="${body#* /bounty }"
+          raw="${raw#\$}"
+          amount=$(echo "$raw" | awk '{print $1}')
+          echo "amount=$amount" >> "$GITHUB_OUTPUT"
+
+      - name: Call BLT bounty processor
+        uses: OWASP-BLT/BLT-Action/Bounty_Processor@v1
+        with:
+          api_base_url: ${{ secrets.BLT_API_BASE_URL }}   # e.g. https://owaspblt.org/api/v1
+          blt_api_token: ${{ secrets.BLT_API_TOKEN }}     # raw token value, WITHOUT "Token "
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          issue_number: ${{ github.event.issue.number }}
+          commenter: ${{ github.event.comment.user.login }}
+          issue_url: ${{ github.event.issue.html_url }}
+          amount: ${{ steps.parse.outputs.amount }}
 
 ### Usage
 
@@ -195,6 +243,25 @@ To use the `/giphy` command:
   - Provides clear instructions for completing the one-time payment
   - Works on both issues and pull request comments
   - Note: Due to GitHub API limitations, tips cannot be sent automatically and require manual completion on the GitHub Sponsors page
+
+#### Bounty Commands
+ - **Create or update a bounty on an issue (GitHub)**  
+   Comment on an issue:
+   - `/bounty $25`
+   - `/bounty 25`
+
+   When wired up to the `Bounty_Processor` composite action, this will:
+   - Call the BLT backend to create or update a bounty for the current GitHub issue.
+   - Query the `/bounties/issue-total/` endpoint to get the **total** bounty for that issue.
+   - Maintain a `$X Bounty` label on the issue that always reflects the current total.
+
+ - **Create or update a bounty from Slack**  
+   In the BLT backend, there is a matching Slack `/bounty` command that talks to the same API.  
+   Example:
+   ```text
+   /bounty 25 https://github.com/OWNER/REPO/issues/123 github_username
+   ```
+   This allows teams to create and update BLT bounties directly from Slack while keeping GitHub labels in sync via this action.
 
 #### Automated Features
 - **Stale Issue Unassignment**: If an issue remains inactive for 24 hours without a linked pull request, the action automatically:
