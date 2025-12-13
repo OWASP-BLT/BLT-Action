@@ -48,6 +48,11 @@ runs:
           echo "Invalid amount format: $AMOUNT" >&2
           exit 1
         fi
+        # Ensure amount is strictly positive
+        if (( $(echo "$AMOUNT <= 0" | bc -l) )); then
+          echo "Amount must be greater than zero: $AMOUNT" >&2
+          exit 1
+        fi
         echo "amount=$AMOUNT" >> "$GITHUB_OUTPUT"
 
     # 2) Create bounty via BLT API
@@ -83,10 +88,8 @@ runs:
           -H "Authorization: Token $BLT_API_TOKEN" \
           -H "Content-Type: application/json" \
           --data-binary @"$tmpfile" \
-          "$API_BASE_URL/bounties/")
-
+          "${API_BASE_URL%/}/bounties/")
         rm -f "$tmpfile"
-
 
         # Separate response body and status code
         http_body=$(printf '%s\n' "$response_and_status" | sed '$d')
