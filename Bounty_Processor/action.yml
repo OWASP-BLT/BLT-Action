@@ -79,6 +79,11 @@ runs:
           exit 1
         fi
 
+         if ! [[ "$ISSUE_URL" =~ ^https://github\.com/[^/]+/[^/]+/issues/[0-9]+$ ]]; then
+          echo "Error: ISSUE_URL must be a GitHub issue URL (https://github.com/<owner>/<repo>/issues/<number>)" >&2
+          exit 1
+        fi
+
         if [[ -z "$COMMENTER" ]]; then
           echo "Error: COMMENTER cannot be empty" >&2
           exit 1
@@ -103,7 +108,6 @@ runs:
         echo "Payload prepared."
 
         tmpfile=$(mktemp)
-        trap 'rm -f "$tmpfile"' EXIT
         printf '%s' "$payload" > "$tmpfile"
 
         response_and_status=$(curl --max-time 30 --retry 3 --retry-delay 2 -sS -w "\n%{http_code}" -X POST \
@@ -167,12 +171,14 @@ runs:
         echo "BLT total request completed with status: $http_code"
 
 
-        total=$(python - <<'PY'
+        total=$(echo "$resp" | python - <<'PY'
         import json, os, sys
+
         fallback = os.environ.get("FALLBACK_AMOUNT", "0")
+
         try:
             data = json.load(sys.stdin)
-            value = data.get("total_amount", data.get("total"))
+            value = data.get("total_amount") or data.get("total")
             if value in (None, ""):
                 print(fallback)
             else:
