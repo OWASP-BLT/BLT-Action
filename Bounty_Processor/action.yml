@@ -72,7 +72,7 @@ runs:
           echo "Python is required but not installed" >&2
           exit 1
         }
-        
+
         # Basic input validation
         if [[ -z "$ISSUE_URL" ]]; then
           echo "Error: ISSUE_URL cannot be empty" >&2
@@ -180,12 +180,6 @@ runs:
         except Exception:
             print(fallback)
         PY
-        "<<<" is not allowed; instead:
-        )
-
-        total=$(echo "$resp" | python - <<'PY'
-        # python code
-        PY
         )
 
         echo "Resolved total bounty: $total"
@@ -284,7 +278,7 @@ runs:
           // 4) Post confirmation comment
           const body =
             `💰 A bounty has been added!\n` +
-            `This issue now has a total bounty of $${total} thanks to @${commenter}.\n\n` +
+            `This issue now has a total bounty of $${total} thanks to @\`${commenter}\`.\n\n` +
             `Issue: ${issue_url}`;
 
           try {
