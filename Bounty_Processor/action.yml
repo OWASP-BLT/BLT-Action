@@ -49,12 +49,13 @@ runs:
           exit 1
         fi
         # Ensure amount is strictly positive
-        if (( $(echo "$AMOUNT <= 0" | bc -l) )); then
-          echo "Amount must be greater than zero: $AMOUNT" >&2
+        if ! awk -v a="$AMOUNT" 'BEGIN{ if (a>0) exit 0; else exit 1 }'; then
+          echo "Amount must be greater than zero" >&2
           exit 1
         fi
         echo "amount=$AMOUNT" >> "$GITHUB_OUTPUT"
-
+    
+    
     # 2) Create bounty via BLT API
     - name: Create bounty via BLT API
       id: create_bounty
@@ -67,6 +68,26 @@ runs:
         COMMENTER: ${{ inputs.commenter }}
       run: |
         set -euo pipefail
+        command -v python >/dev/null 2>&1 || {
+          echo "Python is required but not installed" >&2
+          exit 1
+        }
+        
+        # Basic input validation
+        if [[ -z "$ISSUE_URL" ]]; then
+          echo "Error: ISSUE_URL cannot be empty" >&2
+          exit 1
+        fi
+
+        if [[ -z "$COMMENTER" ]]; then
+          echo "Error: COMMENTER cannot be empty" >&2
+          exit 1
+        fi
+
+        if ! [[ "${{ inputs.issue_number }}" =~ ^[0-9]+$ ]]; then
+          echo "Error: issue_number must be numeric" >&2
+          exit 1
+        fi
 
         payload=$(python - <<'PY'
         import json, os
@@ -82,9 +103,10 @@ runs:
         echo "Payload prepared."
 
         tmpfile=$(mktemp)
+        trap 'rm -f "$tmpfile"' EXIT
         printf '%s' "$payload" > "$tmpfile"
 
-        response_and_status=$(curl -sS -w "\n%{http_code}" -X POST \
+        response_and_status=$(curl --max-time 30 --retry 3 --retry-delay 2 -sS -w "\n%{http_code}" -X POST \
           -H "Authorization: Token $BLT_API_TOKEN" \
           -H "Content-Type: application/json" \
           --data-binary @"$tmpfile" \
@@ -119,15 +141,18 @@ runs:
         FALLBACK_AMOUNT: ${{ steps.validate.outputs.amount }}
       run: |
         set -euo pipefail
-
+        command -v python >/dev/null 2>&1 || {
+          echo "Python is required but not installed" >&2
+          exit 1
+        }
         ISSUE_URL_ENC=$(python - <<'PY'
         import urllib.parse, os
-        print(urllib.parse.quote(os.environ["ISSUE_URL"], safe=""))
+        print(urllib.parse.quote(os.environ["ISSUE_URL"], safe="/:"))
         PY
         )
 
         http_response=$(mktemp)
-        http_code=$(curl -sS -w "%{http_code}" -o "$http_response" \
+        http_code=$(curl --max-time 30 --retry 3 --retry-delay 2 -sS -w "%{http_code}" -o "$http_response" \
           -H "Authorization: Token $BLT_API_TOKEN" \
           "${API_BASE_URL%/}/bounties/issue-total/?github_issue_url=$ISSUE_URL_ENC")
 
@@ -155,7 +180,13 @@ runs:
         except Exception:
             print(fallback)
         PY
-        <<<"$resp")
+        "<<<" is not allowed; instead:
+        )
+
+        total=$(echo "$resp" | python - <<'PY'
+        # python code
+        PY
+        )
 
         echo "Resolved total bounty: $total"
         echo "total=$total" >> "$GITHUB_OUTPUT"
@@ -189,6 +220,15 @@ runs:
             core.warning(`Invalid total from BLT API: "${total}", falling back to validated input amount.`);
             total = process.env.VALIDATED_AMOUNT;
           }
+          async function retry(fn, attempts = 5) {
+            for (let i = 0; i < attempts; i++) {
+              try { return await fn(); }
+              catch (err) {
+                await new Promise(r => setTimeout(r, 500 * (i+1)));
+              }
+            }
+            throw new Error("Operation failed after retries");
+          }
 
           const bountyLabelPattern = /^\$\d+(?:\.\d{1,2})?\s+Bounty$/;
 
@@ -202,12 +242,12 @@ runs:
           for (const label of existing.data) {
             if (bountyLabelPattern.test(label.name)) {
               try {
-                await github.rest.issues.removeLabel({
+                await retry(() => github.rest.issues.removeLabel({
                   owner,
                   repo,
                   issue_number,
                   name: label.name,
-                });
+                }));
               } catch (error) {
                 core.warning(`Failed to remove label ${label.name}: ${error}`);
               }
@@ -218,25 +258,25 @@ runs:
           const newLabelName = `$${total} Bounty`;
 
           try {
-            await github.rest.issues.createLabel({
+            await retry(() => github.rest.issues.createLabel({
               owner,
               repo,
               name: newLabelName,
               color: "ffd700",
               description: `Total bounty: $${total}`,
-            });
+            }));
           } catch (error) {
             core.info(`Label may already exist: ${error}`);
           }
 
           // 3) Attach label to the issue
           try {
-            await github.rest.issues.addLabels({
+            await retry(() => github.rest.issues.addLabels({
               owner,
               repo,
               issue_number,
               labels: [newLabelName],
-            });
+            }));
           } catch (error) {
             core.warning(`Failed to add label ${newLabelName}: ${error}`);
           }
@@ -255,5 +295,5 @@ runs:
               body,
             });
           } catch (error) {
-            core.setFailed(`Failed to post confirmation comment: ${error}`);
+            core.warning(`Failed to post confirmation comment: ${error}`);
           }
