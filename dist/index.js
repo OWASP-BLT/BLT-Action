@@ -43779,22 +43779,14 @@ const run = async () => {
             const shouldGiphy = commentBody.startsWith(giphyKeyword);
             const shouldKudos = commentBody.startsWith(kudosKeyword);
             const shouldTip = commentBody.startsWith(tipKeyword);
-
-            const isHumanCommenter =
-                comment &&
-                comment.user &&
-                (comment.user.type === 'User' || comment.user.type === 'Mannequin');
-            const login = comment && comment.user ? comment.user.login : 'unknown';
-            const type = comment && comment.user ? comment.user.type : 'unknown';
+            
+            if ((shouldAssign || shouldUnassign) && !isHumanCommenter(comment)) {
+                const { login, type } = extractUserInfo(comment);
+                console.log(`Skipping command from non-user account: ${login} (type=${type})`);
+                return;
+            }
 
             if (shouldUnassign) {
-                // 🔒 Ignore unassign requests from bots / GitHub Apps
-                if (!isHumanCommenter) {
-                    console.log(
-                        `Skipping /unassign from non-user account: ${login} (type=${type})`
-                    );
-                    return;
-                }
 
                 console.log(`Unassigning issue #${issue.number} from ${comment.user.login}`);
 
@@ -43852,13 +43844,6 @@ const run = async () => {
             }
 
             if (shouldAssign) {
-                // 🔒 Ignore assign requests from bots / GitHub Apps
-                if (!isHumanCommenter) {
-                    console.log(
-                        `Skipping /assign from non-user account: ${login} (type=${type})`
-                    );
-                    return;
-                }
 
                 console.log(`Assigning issue #${issue.number} to ${comment.user.login}`);
                 try {

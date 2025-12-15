@@ -450,14 +450,7 @@ describe('GitHub API Mock Test', () => {
     });
   });
   describe('Human commenter guard for /assign and /unassign', () => {
-    // Mirror the production logic in src/index.js
-    function isHumanCommenter(comment) {
-      return (
-        comment &&
-        comment.user &&
-        (comment.user.type === 'User' || comment.user.type === 'Mannequin')
-      );
-    }
+    const { isHumanCommenter } = require('../src/utils');
 
     const assignKeywords = [
       '/assign',
