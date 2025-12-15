@@ -1,7 +1,7 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 const axios = require('axios');
-
+const { isHumanCommenter, extractUserInfo } = require('./utils');
 const run = async () => {
     try {
         console.log("Starting GitHub Action...");

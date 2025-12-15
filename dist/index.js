@@ -36555,6 +36555,27 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 5804:
+/***/ ((module) => {
+
+function isHumanCommenter(comment) {
+    return (
+        comment &&
+        comment.user &&
+        (comment.user.type === 'User' || comment.user.type === 'Mannequin')
+    );
+}
+
+function extractUserInfo(comment) {
+    const login = comment?.user?.login ?? "unknown";
+    const type = comment?.user?.type ?? "unknown";
+    return { login, type };
+}
+
+module.exports = { isHumanCommenter, extractUserInfo };
+
+/***/ }),
+
 /***/ 2078:
 /***/ ((module) => {
 
@@ -43744,7 +43765,7 @@ var __webpack_exports__ = {};
 const core = __nccwpck_require__(7484);
 const github = __nccwpck_require__(3228);
 const axios = __nccwpck_require__(7269);
-
+const { isHumanCommenter, extractUserInfo } = __nccwpck_require__(5804);
 const run = async () => {
     try {
         console.log("Starting GitHub Action...");
