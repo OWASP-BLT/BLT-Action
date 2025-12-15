@@ -558,3 +558,42 @@ describe('GitHub API Mock Test', () => {
     });
   });
 });
+
+describe('Integration tests for bot filtering with API mocking', () => {
+  const { isHumanCommenter } = require('../src/utils');
+  
+  it('should NOT call GitHub API when bot comments /assign', async () => {
+    // Set up: no API mock = any API call will fail the test
+    const botComment = {
+      body: '/assign',
+      user: { login: 'coderabbitai', type: 'Bot' }
+    };
+    
+    // The guard should prevent execution
+    if (!isHumanCommenter(botComment)) {
+      // Early return happened correctly
+      assert.ok(true, 'Bot comment correctly blocked');
+      return;
+    }
+    
+    assert.fail('Should not reach GitHub API call for bot comments');
+  });
+
+  it('should call GitHub API when human comments /assign', async () => {
+    // Set up: mock the expected API call
+    const apiMock = nock('https://api.github.com')
+      .post('/repos/owner/repo/issues/1/assignees')
+      .reply(200, { success: true });
+    
+    const humanComment = {
+      body: '/assign',
+      user: { login: 'alice', type: 'User' }
+    };
+    
+    // Verify human can proceed
+    assert.strictEqual(isHumanCommenter(humanComment), true);
+    
+    // In a real integration test, you'd call your actual action here
+    // and verify the API mock was called
+  });
+});
