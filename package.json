@@ -17,7 +17,8 @@
     "scripts": {
         "build": "ncc build src/index.js -o dist",
         "test": "mocha src/mock-test.js",
-        "postinstall": "rm -rf node_modules/auto-assign-issue"
+        "postinstall": "node -e \"try{require('fs').rmSync('node_modules/auto-assign-issue',{recursive:true,force:true});}catch(e){}\""
+
     },
     "devDependencies": {
         "@vercel/ncc": "^0.38.4",
