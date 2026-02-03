@@ -8,7 +8,11 @@
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -21,7 +25,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -83,13 +87,13 @@ class Command {
     }
 }
 function escapeData(s) {
-    return utils_1.toCommandValue(s)
+    return (0, utils_1.toCommandValue)(s)
         .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A');
 }
 function escapeProperty(s) {
-    return utils_1.toCommandValue(s)
+    return (0, utils_1.toCommandValue)(s)
         .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A')
@@ -107,7 +111,11 @@ function escapeProperty(s) {
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -120,7 +128,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -134,13 +142,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
+exports.platform = exports.toPlatformPath = exports.toWin32Path = exports.toPosixPath = exports.markdownSummary = exports.summary = exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
 const command_1 = __nccwpck_require__(4914);
 const file_command_1 = __nccwpck_require__(4753);
 const utils_1 = __nccwpck_require__(302);
 const os = __importStar(__nccwpck_require__(857));
 const path = __importStar(__nccwpck_require__(6928));
-const uuid_1 = __nccwpck_require__(2048);
 const oidc_utils_1 = __nccwpck_require__(5306);
 /**
  * The code to exit an action
@@ -155,7 +162,7 @@ var ExitCode;
      * A code indicating that the action was a failure
      */
     ExitCode[ExitCode["Failure"] = 1] = "Failure";
-})(ExitCode = exports.ExitCode || (exports.ExitCode = {}));
+})(ExitCode || (exports.ExitCode = ExitCode = {}));
 //-----------------------------------------------------------------------
 // Variables
 //-----------------------------------------------------------------------
@@ -166,24 +173,13 @@ var ExitCode;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function exportVariable(name, val) {
-    const convertedVal = utils_1.toCommandValue(val);
+    const convertedVal = (0, utils_1.toCommandValue)(val);
     process.env[name] = convertedVal;
     const filePath = process.env['GITHUB_ENV'] || '';
     if (filePath) {
-        const delimiter = `ghadelimiter_${uuid_1.v4()}`;
-        // These should realistically never happen, but just in case someone finds a way to exploit uuid generation let's not allow keys or values that contain the delimiter.
-        if (name.includes(delimiter)) {
-            throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter}"`);
-        }
-        if (convertedVal.includes(delimiter)) {
-            throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
-        }
-        const commandValue = `${name}<<${delimiter}${os.EOL}${convertedVal}${os.EOL}${delimiter}`;
-        file_command_1.issueCommand('ENV', commandValue);
+        return (0, file_command_1.issueFileCommand)('ENV', (0, file_command_1.prepareKeyValueMessage)(name, val));
     }
-    else {
-        command_1.issueCommand('set-env', { name }, convertedVal);
-    }
+    (0, command_1.issueCommand)('set-env', { name }, convertedVal);
 }
 exports.exportVariable = exportVariable;
 /**
@@ -191,7 +187,7 @@ exports.exportVariable = exportVariable;
  * @param secret value of the secret
  */
 function setSecret(secret) {
-    command_1.issueCommand('add-mask', {}, secret);
+    (0, command_1.issueCommand)('add-mask', {}, secret);
 }
 exports.setSecret = setSecret;
 /**
@@ -201,10 +197,10 @@ exports.setSecret = setSecret;
 function addPath(inputPath) {
     const filePath = process.env['GITHUB_PATH'] || '';
     if (filePath) {
-        file_command_1.issueCommand('PATH', inputPath);
+        (0, file_command_1.issueFileCommand)('PATH', inputPath);
     }
     else {
-        command_1.issueCommand('add-path', {}, inputPath);
+        (0, command_1.issueCommand)('add-path', {}, inputPath);
     }
     process.env['PATH'] = `${inputPath}${path.delimiter}${process.env['PATH']}`;
 }
@@ -241,7 +237,10 @@ function getMultilineInput(name, options) {
     const inputs = getInput(name, options)
         .split('\n')
         .filter(x => x !== '');
-    return inputs;
+    if (options && options.trimWhitespace === false) {
+        return inputs;
+    }
+    return inputs.map(input => input.trim());
 }
 exports.getMultilineInput = getMultilineInput;
 /**
@@ -274,8 +273,12 @@ exports.getBooleanInput = getBooleanInput;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setOutput(name, value) {
+    const filePath = process.env['GITHUB_OUTPUT'] || '';
+    if (filePath) {
+        return (0, file_command_1.issueFileCommand)('OUTPUT', (0, file_command_1.prepareKeyValueMessage)(name, value));
+    }
     process.stdout.write(os.EOL);
-    command_1.issueCommand('set-output', { name }, value);
+    (0, command_1.issueCommand)('set-output', { name }, (0, utils_1.toCommandValue)(value));
 }
 exports.setOutput = setOutput;
 /**
@@ -284,7 +287,7 @@ exports.setOutput = setOutput;
  *
  */
 function setCommandEcho(enabled) {
-    command_1.issue('echo', enabled ? 'on' : 'off');
+    (0, command_1.issue)('echo', enabled ? 'on' : 'off');
 }
 exports.setCommandEcho = setCommandEcho;
 //-----------------------------------------------------------------------
@@ -315,7 +318,7 @@ exports.isDebug = isDebug;
  * @param message debug message
  */
 function debug(message) {
-    command_1.issueCommand('debug', {}, message);
+    (0, command_1.issueCommand)('debug', {}, message);
 }
 exports.debug = debug;
 /**
@@ -324,7 +327,7 @@ exports.debug = debug;
  * @param properties optional properties to add to the annotation.
  */
 function error(message, properties = {}) {
-    command_1.issueCommand('error', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+    (0, command_1.issueCommand)('error', (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
 }
 exports.error = error;
 /**
@@ -333,7 +336,7 @@ exports.error = error;
  * @param properties optional properties to add to the annotation.
  */
 function warning(message, properties = {}) {
-    command_1.issueCommand('warning', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+    (0, command_1.issueCommand)('warning', (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
 }
 exports.warning = warning;
 /**
@@ -342,7 +345,7 @@ exports.warning = warning;
  * @param properties optional properties to add to the annotation.
  */
 function notice(message, properties = {}) {
-    command_1.issueCommand('notice', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+    (0, command_1.issueCommand)('notice', (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
 }
 exports.notice = notice;
 /**
@@ -361,14 +364,14 @@ exports.info = info;
  * @param name The name of the output group
  */
 function startGroup(name) {
-    command_1.issue('group', name);
+    (0, command_1.issue)('group', name);
 }
 exports.startGroup = startGroup;
 /**
  * End an output group.
  */
 function endGroup() {
-    command_1.issue('endgroup');
+    (0, command_1.issue)('endgroup');
 }
 exports.endGroup = endGroup;
 /**
@@ -404,7 +407,11 @@ exports.group = group;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function saveState(name, value) {
-    command_1.issueCommand('save-state', { name }, value);
+    const filePath = process.env['GITHUB_STATE'] || '';
+    if (filePath) {
+        return (0, file_command_1.issueFileCommand)('STATE', (0, file_command_1.prepareKeyValueMessage)(name, value));
+    }
+    (0, command_1.issueCommand)('save-state', { name }, (0, utils_1.toCommandValue)(value));
 }
 exports.saveState = saveState;
 /**
@@ -440,6 +447,10 @@ var path_utils_1 = __nccwpck_require__(1976);
 Object.defineProperty(exports, "toPosixPath", ({ enumerable: true, get: function () { return path_utils_1.toPosixPath; } }));
 Object.defineProperty(exports, "toWin32Path", ({ enumerable: true, get: function () { return path_utils_1.toWin32Path; } }));
 Object.defineProperty(exports, "toPlatformPath", ({ enumerable: true, get: function () { return path_utils_1.toPlatformPath; } }));
+/**
+ * Platform utilities exports
+ */
+exports.platform = __importStar(__nccwpck_require__(8968));
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -452,7 +463,11 @@ Object.defineProperty(exports, "toPlatformPath", ({ enumerable: true, get: funct
 // For internal use, subject to change.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -465,18 +480,19 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.issueCommand = void 0;
+exports.prepareKeyValueMessage = exports.issueFileCommand = void 0;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
+const crypto = __importStar(__nccwpck_require__(6982));
 const fs = __importStar(__nccwpck_require__(9896));
 const os = __importStar(__nccwpck_require__(857));
 const utils_1 = __nccwpck_require__(302);
-function issueCommand(command, message) {
+function issueFileCommand(command, message) {
     const filePath = process.env[`GITHUB_${command}`];
     if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
@@ -484,11 +500,26 @@ function issueCommand(command, message) {
     if (!fs.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
     }
-    fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+    fs.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
         encoding: 'utf8'
     });
 }
-exports.issueCommand = issueCommand;
+exports.issueFileCommand = issueFileCommand;
+function prepareKeyValueMessage(key, value) {
+    const delimiter = `ghadelimiter_${crypto.randomUUID()}`;
+    const convertedValue = (0, utils_1.toCommandValue)(value);
+    // These should realistically never happen, but just in case someone finds a
+    // way to exploit uuid generation let's not allow keys or values that contain
+    // the delimiter.
+    if (key.includes(delimiter)) {
+        throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter}"`);
+    }
+    if (convertedValue.includes(delimiter)) {
+        throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
+    }
+    return `${key}<<${delimiter}${os.EOL}${convertedValue}${os.EOL}${delimiter}`;
+}
+exports.prepareKeyValueMessage = prepareKeyValueMessage;
 //# sourceMappingURL=file-command.js.map
 
 /***/ }),
@@ -509,8 +540,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.OidcClient = void 0;
-const http_client_1 = __nccwpck_require__(8163);
-const auth_1 = __nccwpck_require__(7481);
+const http_client_1 = __nccwpck_require__(4844);
+const auth_1 = __nccwpck_require__(4552);
 const core_1 = __nccwpck_require__(7484);
 class OidcClient {
     static createHttpClient(allowRetry = true, maxRetry = 10) {
@@ -543,7 +574,7 @@ class OidcClient {
                 .catch(error => {
                 throw new Error(`Failed to get ID Token. \n 
         Error Code : ${error.statusCode}\n 
-        Error Message: ${error.result.message}`);
+        Error Message: ${error.message}`);
             });
             const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
             if (!id_token) {
@@ -561,9 +592,9 @@ class OidcClient {
                     const encodedAudience = encodeURIComponent(audience);
                     id_token_url = `${id_token_url}&audience=${encodedAudience}`;
                 }
-                core_1.debug(`ID token url is ${id_token_url}`);
+                (0, core_1.debug)(`ID token url is ${id_token_url}`);
                 const id_token = yield OidcClient.getCall(id_token_url);
-                core_1.setSecret(id_token);
+                (0, core_1.setSecret)(id_token);
                 return id_token;
             }
             catch (error) {
@@ -584,7 +615,11 @@ exports.OidcClient = OidcClient;
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -597,7 +632,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -639,6 +674,107 @@ function toPlatformPath(pth) {
 }
 exports.toPlatformPath = toPlatformPath;
 //# sourceMappingURL=path-utils.js.map
+
+/***/ }),
+
+/***/ 8968:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getDetails = exports.isLinux = exports.isMacOS = exports.isWindows = exports.arch = exports.platform = void 0;
+const os_1 = __importDefault(__nccwpck_require__(857));
+const exec = __importStar(__nccwpck_require__(5236));
+const getWindowsInfo = () => __awaiter(void 0, void 0, void 0, function* () {
+    const { stdout: version } = yield exec.getExecOutput('powershell -command "(Get-CimInstance -ClassName Win32_OperatingSystem).Version"', undefined, {
+        silent: true
+    });
+    const { stdout: name } = yield exec.getExecOutput('powershell -command "(Get-CimInstance -ClassName Win32_OperatingSystem).Caption"', undefined, {
+        silent: true
+    });
+    return {
+        name: name.trim(),
+        version: version.trim()
+    };
+});
+const getMacOsInfo = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d;
+    const { stdout } = yield exec.getExecOutput('sw_vers', undefined, {
+        silent: true
+    });
+    const version = (_b = (_a = stdout.match(/ProductVersion:\s*(.+)/)) === null || _a === void 0 ? void 0 : _a[1]) !== null && _b !== void 0 ? _b : '';
+    const name = (_d = (_c = stdout.match(/ProductName:\s*(.+)/)) === null || _c === void 0 ? void 0 : _c[1]) !== null && _d !== void 0 ? _d : '';
+    return {
+        name,
+        version
+    };
+});
+const getLinuxInfo = () => __awaiter(void 0, void 0, void 0, function* () {
+    const { stdout } = yield exec.getExecOutput('lsb_release', ['-i', '-r', '-s'], {
+        silent: true
+    });
+    const [name, version] = stdout.trim().split('\n');
+    return {
+        name,
+        version
+    };
+});
+exports.platform = os_1.default.platform();
+exports.arch = os_1.default.arch();
+exports.isWindows = exports.platform === 'win32';
+exports.isMacOS = exports.platform === 'darwin';
+exports.isLinux = exports.platform === 'linux';
+function getDetails() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return Object.assign(Object.assign({}, (yield (exports.isWindows
+            ? getWindowsInfo()
+            : exports.isMacOS
+                ? getMacOsInfo()
+                : getLinuxInfo()))), { platform: exports.platform,
+            arch: exports.arch,
+            isWindows: exports.isWindows,
+            isMacOS: exports.isMacOS,
+            isLinux: exports.isLinux });
+    });
+}
+exports.getDetails = getDetails;
+//# sourceMappingURL=platform.js.map
 
 /***/ }),
 
@@ -979,7 +1115,1563 @@ exports.toCommandProperties = toCommandProperties;
 
 /***/ }),
 
-/***/ 7481:
+/***/ 5236:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getExecOutput = exports.exec = void 0;
+const string_decoder_1 = __nccwpck_require__(3193);
+const tr = __importStar(__nccwpck_require__(6665));
+/**
+ * Exec a command.
+ * Output will be streamed to the live console.
+ * Returns promise with return code
+ *
+ * @param     commandLine        command to execute (can include additional args). Must be correctly escaped.
+ * @param     args               optional arguments for tool. Escaping is handled by the lib.
+ * @param     options            optional exec options.  See ExecOptions
+ * @returns   Promise<number>    exit code
+ */
+function exec(commandLine, args, options) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const commandArgs = tr.argStringToArray(commandLine);
+        if (commandArgs.length === 0) {
+            throw new Error(`Parameter 'commandLine' cannot be null or empty.`);
+        }
+        // Path to tool to execute should be first arg
+        const toolPath = commandArgs[0];
+        args = commandArgs.slice(1).concat(args || []);
+        const runner = new tr.ToolRunner(toolPath, args, options);
+        return runner.exec();
+    });
+}
+exports.exec = exec;
+/**
+ * Exec a command and get the output.
+ * Output will be streamed to the live console.
+ * Returns promise with the exit code and collected stdout and stderr
+ *
+ * @param     commandLine           command to execute (can include additional args). Must be correctly escaped.
+ * @param     args                  optional arguments for tool. Escaping is handled by the lib.
+ * @param     options               optional exec options.  See ExecOptions
+ * @returns   Promise<ExecOutput>   exit code, stdout, and stderr
+ */
+function getExecOutput(commandLine, args, options) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        let stdout = '';
+        let stderr = '';
+        //Using string decoder covers the case where a mult-byte character is split
+        const stdoutDecoder = new string_decoder_1.StringDecoder('utf8');
+        const stderrDecoder = new string_decoder_1.StringDecoder('utf8');
+        const originalStdoutListener = (_a = options === null || options === void 0 ? void 0 : options.listeners) === null || _a === void 0 ? void 0 : _a.stdout;
+        const originalStdErrListener = (_b = options === null || options === void 0 ? void 0 : options.listeners) === null || _b === void 0 ? void 0 : _b.stderr;
+        const stdErrListener = (data) => {
+            stderr += stderrDecoder.write(data);
+            if (originalStdErrListener) {
+                originalStdErrListener(data);
+            }
+        };
+        const stdOutListener = (data) => {
+            stdout += stdoutDecoder.write(data);
+            if (originalStdoutListener) {
+                originalStdoutListener(data);
+            }
+        };
+        const listeners = Object.assign(Object.assign({}, options === null || options === void 0 ? void 0 : options.listeners), { stdout: stdOutListener, stderr: stdErrListener });
+        const exitCode = yield exec(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
+        //flush any remaining characters
+        stdout += stdoutDecoder.end();
+        stderr += stderrDecoder.end();
+        return {
+            exitCode,
+            stdout,
+            stderr
+        };
+    });
+}
+exports.getExecOutput = getExecOutput;
+//# sourceMappingURL=exec.js.map
+
+/***/ }),
+
+/***/ 6665:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.argStringToArray = exports.ToolRunner = void 0;
+const os = __importStar(__nccwpck_require__(857));
+const events = __importStar(__nccwpck_require__(4434));
+const child = __importStar(__nccwpck_require__(5317));
+const path = __importStar(__nccwpck_require__(6928));
+const io = __importStar(__nccwpck_require__(4994));
+const ioUtil = __importStar(__nccwpck_require__(5207));
+const timers_1 = __nccwpck_require__(3557);
+/* eslint-disable @typescript-eslint/unbound-method */
+const IS_WINDOWS = process.platform === 'win32';
+/*
+ * Class for running command line tools. Handles quoting and arg parsing in a platform agnostic way.
+ */
+class ToolRunner extends events.EventEmitter {
+    constructor(toolPath, args, options) {
+        super();
+        if (!toolPath) {
+            throw new Error("Parameter 'toolPath' cannot be null or empty.");
+        }
+        this.toolPath = toolPath;
+        this.args = args || [];
+        this.options = options || {};
+    }
+    _debug(message) {
+        if (this.options.listeners && this.options.listeners.debug) {
+            this.options.listeners.debug(message);
+        }
+    }
+    _getCommandString(options, noPrefix) {
+        const toolPath = this._getSpawnFileName();
+        const args = this._getSpawnArgs(options);
+        let cmd = noPrefix ? '' : '[command]'; // omit prefix when piped to a second tool
+        if (IS_WINDOWS) {
+            // Windows + cmd file
+            if (this._isCmdFile()) {
+                cmd += toolPath;
+                for (const a of args) {
+                    cmd += ` ${a}`;
+                }
+            }
+            // Windows + verbatim
+            else if (options.windowsVerbatimArguments) {
+                cmd += `"${toolPath}"`;
+                for (const a of args) {
+                    cmd += ` ${a}`;
+                }
+            }
+            // Windows (regular)
+            else {
+                cmd += this._windowsQuoteCmdArg(toolPath);
+                for (const a of args) {
+                    cmd += ` ${this._windowsQuoteCmdArg(a)}`;
+                }
+            }
+        }
+        else {
+            // OSX/Linux - this can likely be improved with some form of quoting.
+            // creating processes on Unix is fundamentally different than Windows.
+            // on Unix, execvp() takes an arg array.
+            cmd += toolPath;
+            for (const a of args) {
+                cmd += ` ${a}`;
+            }
+        }
+        return cmd;
+    }
+    _processLineBuffer(data, strBuffer, onLine) {
+        try {
+            let s = strBuffer + data.toString();
+            let n = s.indexOf(os.EOL);
+            while (n > -1) {
+                const line = s.substring(0, n);
+                onLine(line);
+                // the rest of the string ...
+                s = s.substring(n + os.EOL.length);
+                n = s.indexOf(os.EOL);
+            }
+            return s;
+        }
+        catch (err) {
+            // streaming lines to console is best effort.  Don't fail a build.
+            this._debug(`error processing line. Failed with error ${err}`);
+            return '';
+        }
+    }
+    _getSpawnFileName() {
+        if (IS_WINDOWS) {
+            if (this._isCmdFile()) {
+                return process.env['COMSPEC'] || 'cmd.exe';
+            }
+        }
+        return this.toolPath;
+    }
+    _getSpawnArgs(options) {
+        if (IS_WINDOWS) {
+            if (this._isCmdFile()) {
+                let argline = `/D /S /C "${this._windowsQuoteCmdArg(this.toolPath)}`;
+                for (const a of this.args) {
+                    argline += ' ';
+                    argline += options.windowsVerbatimArguments
+                        ? a
+                        : this._windowsQuoteCmdArg(a);
+                }
+                argline += '"';
+                return [argline];
+            }
+        }
+        return this.args;
+    }
+    _endsWith(str, end) {
+        return str.endsWith(end);
+    }
+    _isCmdFile() {
+        const upperToolPath = this.toolPath.toUpperCase();
+        return (this._endsWith(upperToolPath, '.CMD') ||
+            this._endsWith(upperToolPath, '.BAT'));
+    }
+    _windowsQuoteCmdArg(arg) {
+        // for .exe, apply the normal quoting rules that libuv applies
+        if (!this._isCmdFile()) {
+            return this._uvQuoteCmdArg(arg);
+        }
+        // otherwise apply quoting rules specific to the cmd.exe command line parser.
+        // the libuv rules are generic and are not designed specifically for cmd.exe
+        // command line parser.
+        //
+        // for a detailed description of the cmd.exe command line parser, refer to
+        // http://stackoverflow.com/questions/4094699/how-does-the-windows-command-interpreter-cmd-exe-parse-scripts/7970912#7970912
+        // need quotes for empty arg
+        if (!arg) {
+            return '""';
+        }
+        // determine whether the arg needs to be quoted
+        const cmdSpecialChars = [
+            ' ',
+            '\t',
+            '&',
+            '(',
+            ')',
+            '[',
+            ']',
+            '{',
+            '}',
+            '^',
+            '=',
+            ';',
+            '!',
+            "'",
+            '+',
+            ',',
+            '`',
+            '~',
+            '|',
+            '<',
+            '>',
+            '"'
+        ];
+        let needsQuotes = false;
+        for (const char of arg) {
+            if (cmdSpecialChars.some(x => x === char)) {
+                needsQuotes = true;
+                break;
+            }
+        }
+        // short-circuit if quotes not needed
+        if (!needsQuotes) {
+            return arg;
+        }
+        // the following quoting rules are very similar to the rules that by libuv applies.
+        //
+        // 1) wrap the string in quotes
+        //
+        // 2) double-up quotes - i.e. " => ""
+        //
+        //    this is different from the libuv quoting rules. libuv replaces " with \", which unfortunately
+        //    doesn't work well with a cmd.exe command line.
+        //
+        //    note, replacing " with "" also works well if the arg is passed to a downstream .NET console app.
+        //    for example, the command line:
+        //          foo.exe "myarg:""my val"""
+        //    is parsed by a .NET console app into an arg array:
+        //          [ "myarg:\"my val\"" ]
+        //    which is the same end result when applying libuv quoting rules. although the actual
+        //    command line from libuv quoting rules would look like:
+        //          foo.exe "myarg:\"my val\""
+        //
+        // 3) double-up slashes that precede a quote,
+        //    e.g.  hello \world    => "hello \world"
+        //          hello\"world    => "hello\\""world"
+        //          hello\\"world   => "hello\\\\""world"
+        //          hello world\    => "hello world\\"
+        //
+        //    technically this is not required for a cmd.exe command line, or the batch argument parser.
+        //    the reasons for including this as a .cmd quoting rule are:
+        //
+        //    a) this is optimized for the scenario where the argument is passed from the .cmd file to an
+        //       external program. many programs (e.g. .NET console apps) rely on the slash-doubling rule.
+        //
+        //    b) it's what we've been doing previously (by deferring to node default behavior) and we
+        //       haven't heard any complaints about that aspect.
+        //
+        // note, a weakness of the quoting rules chosen here, is that % is not escaped. in fact, % cannot be
+        // escaped when used on the command line directly - even though within a .cmd file % can be escaped
+        // by using %%.
+        //
+        // the saving grace is, on the command line, %var% is left as-is if var is not defined. this contrasts
+        // the line parsing rules within a .cmd file, where if var is not defined it is replaced with nothing.
+        //
+        // one option that was explored was replacing % with ^% - i.e. %var% => ^%var^%. this hack would
+        // often work, since it is unlikely that var^ would exist, and the ^ character is removed when the
+        // variable is used. the problem, however, is that ^ is not removed when %* is used to pass the args
+        // to an external program.
+        //
+        // an unexplored potential solution for the % escaping problem, is to create a wrapper .cmd file.
+        // % can be escaped within a .cmd file.
+        let reverse = '"';
+        let quoteHit = true;
+        for (let i = arg.length; i > 0; i--) {
+            // walk the string in reverse
+            reverse += arg[i - 1];
+            if (quoteHit && arg[i - 1] === '\\') {
+                reverse += '\\'; // double the slash
+            }
+            else if (arg[i - 1] === '"') {
+                quoteHit = true;
+                reverse += '"'; // double the quote
+            }
+            else {
+                quoteHit = false;
+            }
+        }
+        reverse += '"';
+        return reverse
+            .split('')
+            .reverse()
+            .join('');
+    }
+    _uvQuoteCmdArg(arg) {
+        // Tool runner wraps child_process.spawn() and needs to apply the same quoting as
+        // Node in certain cases where the undocumented spawn option windowsVerbatimArguments
+        // is used.
+        //
+        // Since this function is a port of quote_cmd_arg from Node 4.x (technically, lib UV,
+        // see https://github.com/nodejs/node/blob/v4.x/deps/uv/src/win/process.c for details),
+        // pasting copyright notice from Node within this function:
+        //
+        //      Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+        //
+        //      Permission is hereby granted, free of charge, to any person obtaining a copy
+        //      of this software and associated documentation files (the "Software"), to
+        //      deal in the Software without restriction, including without limitation the
+        //      rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+        //      sell copies of the Software, and to permit persons to whom the Software is
+        //      furnished to do so, subject to the following conditions:
+        //
+        //      The above copyright notice and this permission notice shall be included in
+        //      all copies or substantial portions of the Software.
+        //
+        //      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        //      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        //      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        //      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        //      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+        //      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+        //      IN THE SOFTWARE.
+        if (!arg) {
+            // Need double quotation for empty argument
+            return '""';
+        }
+        if (!arg.includes(' ') && !arg.includes('\t') && !arg.includes('"')) {
+            // No quotation needed
+            return arg;
+        }
+        if (!arg.includes('"') && !arg.includes('\\')) {
+            // No embedded double quotes or backslashes, so I can just wrap
+            // quote marks around the whole thing.
+            return `"${arg}"`;
+        }
+        // Expected input/output:
+        //   input : hello"world
+        //   output: "hello\"world"
+        //   input : hello""world
+        //   output: "hello\"\"world"
+        //   input : hello\world
+        //   output: hello\world
+        //   input : hello\\world
+        //   output: hello\\world
+        //   input : hello\"world
+        //   output: "hello\\\"world"
+        //   input : hello\\"world
+        //   output: "hello\\\\\"world"
+        //   input : hello world\
+        //   output: "hello world\\" - note the comment in libuv actually reads "hello world\"
+        //                             but it appears the comment is wrong, it should be "hello world\\"
+        let reverse = '"';
+        let quoteHit = true;
+        for (let i = arg.length; i > 0; i--) {
+            // walk the string in reverse
+            reverse += arg[i - 1];
+            if (quoteHit && arg[i - 1] === '\\') {
+                reverse += '\\';
+            }
+            else if (arg[i - 1] === '"') {
+                quoteHit = true;
+                reverse += '\\';
+            }
+            else {
+                quoteHit = false;
+            }
+        }
+        reverse += '"';
+        return reverse
+            .split('')
+            .reverse()
+            .join('');
+    }
+    _cloneExecOptions(options) {
+        options = options || {};
+        const result = {
+            cwd: options.cwd || process.cwd(),
+            env: options.env || process.env,
+            silent: options.silent || false,
+            windowsVerbatimArguments: options.windowsVerbatimArguments || false,
+            failOnStdErr: options.failOnStdErr || false,
+            ignoreReturnCode: options.ignoreReturnCode || false,
+            delay: options.delay || 10000
+        };
+        result.outStream = options.outStream || process.stdout;
+        result.errStream = options.errStream || process.stderr;
+        return result;
+    }
+    _getSpawnOptions(options, toolPath) {
+        options = options || {};
+        const result = {};
+        result.cwd = options.cwd;
+        result.env = options.env;
+        result['windowsVerbatimArguments'] =
+            options.windowsVerbatimArguments || this._isCmdFile();
+        if (options.windowsVerbatimArguments) {
+            result.argv0 = `"${toolPath}"`;
+        }
+        return result;
+    }
+    /**
+     * Exec a tool.
+     * Output will be streamed to the live console.
+     * Returns promise with return code
+     *
+     * @param     tool     path to tool to exec
+     * @param     options  optional exec options.  See ExecOptions
+     * @returns   number
+     */
+    exec() {
+        return __awaiter(this, void 0, void 0, function* () {
+            // root the tool path if it is unrooted and contains relative pathing
+            if (!ioUtil.isRooted(this.toolPath) &&
+                (this.toolPath.includes('/') ||
+                    (IS_WINDOWS && this.toolPath.includes('\\')))) {
+                // prefer options.cwd if it is specified, however options.cwd may also need to be rooted
+                this.toolPath = path.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+            }
+            // if the tool is only a file name, then resolve it from the PATH
+            // otherwise verify it exists (add extension on Windows if necessary)
+            this.toolPath = yield io.which(this.toolPath, true);
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                this._debug(`exec tool: ${this.toolPath}`);
+                this._debug('arguments:');
+                for (const arg of this.args) {
+                    this._debug(`   ${arg}`);
+                }
+                const optionsNonNull = this._cloneExecOptions(this.options);
+                if (!optionsNonNull.silent && optionsNonNull.outStream) {
+                    optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os.EOL);
+                }
+                const state = new ExecState(optionsNonNull, this.toolPath);
+                state.on('debug', (message) => {
+                    this._debug(message);
+                });
+                if (this.options.cwd && !(yield ioUtil.exists(this.options.cwd))) {
+                    return reject(new Error(`The cwd: ${this.options.cwd} does not exist!`));
+                }
+                const fileName = this._getSpawnFileName();
+                const cp = child.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName));
+                let stdbuffer = '';
+                if (cp.stdout) {
+                    cp.stdout.on('data', (data) => {
+                        if (this.options.listeners && this.options.listeners.stdout) {
+                            this.options.listeners.stdout(data);
+                        }
+                        if (!optionsNonNull.silent && optionsNonNull.outStream) {
+                            optionsNonNull.outStream.write(data);
+                        }
+                        stdbuffer = this._processLineBuffer(data, stdbuffer, (line) => {
+                            if (this.options.listeners && this.options.listeners.stdline) {
+                                this.options.listeners.stdline(line);
+                            }
+                        });
+                    });
+                }
+                let errbuffer = '';
+                if (cp.stderr) {
+                    cp.stderr.on('data', (data) => {
+                        state.processStderr = true;
+                        if (this.options.listeners && this.options.listeners.stderr) {
+                            this.options.listeners.stderr(data);
+                        }
+                        if (!optionsNonNull.silent &&
+                            optionsNonNull.errStream &&
+                            optionsNonNull.outStream) {
+                            const s = optionsNonNull.failOnStdErr
+                                ? optionsNonNull.errStream
+                                : optionsNonNull.outStream;
+                            s.write(data);
+                        }
+                        errbuffer = this._processLineBuffer(data, errbuffer, (line) => {
+                            if (this.options.listeners && this.options.listeners.errline) {
+                                this.options.listeners.errline(line);
+                            }
+                        });
+                    });
+                }
+                cp.on('error', (err) => {
+                    state.processError = err.message;
+                    state.processExited = true;
+                    state.processClosed = true;
+                    state.CheckComplete();
+                });
+                cp.on('exit', (code) => {
+                    state.processExitCode = code;
+                    state.processExited = true;
+                    this._debug(`Exit code ${code} received from tool '${this.toolPath}'`);
+                    state.CheckComplete();
+                });
+                cp.on('close', (code) => {
+                    state.processExitCode = code;
+                    state.processExited = true;
+                    state.processClosed = true;
+                    this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
+                    state.CheckComplete();
+                });
+                state.on('done', (error, exitCode) => {
+                    if (stdbuffer.length > 0) {
+                        this.emit('stdline', stdbuffer);
+                    }
+                    if (errbuffer.length > 0) {
+                        this.emit('errline', errbuffer);
+                    }
+                    cp.removeAllListeners();
+                    if (error) {
+                        reject(error);
+                    }
+                    else {
+                        resolve(exitCode);
+                    }
+                });
+                if (this.options.input) {
+                    if (!cp.stdin) {
+                        throw new Error('child process missing stdin');
+                    }
+                    cp.stdin.end(this.options.input);
+                }
+            }));
+        });
+    }
+}
+exports.ToolRunner = ToolRunner;
+/**
+ * Convert an arg string to an array of args. Handles escaping
+ *
+ * @param    argString   string of arguments
+ * @returns  string[]    array of arguments
+ */
+function argStringToArray(argString) {
+    const args = [];
+    let inQuotes = false;
+    let escaped = false;
+    let arg = '';
+    function append(c) {
+        // we only escape double quotes.
+        if (escaped && c !== '"') {
+            arg += '\\';
+        }
+        arg += c;
+        escaped = false;
+    }
+    for (let i = 0; i < argString.length; i++) {
+        const c = argString.charAt(i);
+        if (c === '"') {
+            if (!escaped) {
+                inQuotes = !inQuotes;
+            }
+            else {
+                append(c);
+            }
+            continue;
+        }
+        if (c === '\\' && escaped) {
+            append(c);
+            continue;
+        }
+        if (c === '\\' && inQuotes) {
+            escaped = true;
+            continue;
+        }
+        if (c === ' ' && !inQuotes) {
+            if (arg.length > 0) {
+                args.push(arg);
+                arg = '';
+            }
+            continue;
+        }
+        append(c);
+    }
+    if (arg.length > 0) {
+        args.push(arg.trim());
+    }
+    return args;
+}
+exports.argStringToArray = argStringToArray;
+class ExecState extends events.EventEmitter {
+    constructor(options, toolPath) {
+        super();
+        this.processClosed = false; // tracks whether the process has exited and stdio is closed
+        this.processError = '';
+        this.processExitCode = 0;
+        this.processExited = false; // tracks whether the process has exited
+        this.processStderr = false; // tracks whether stderr was written to
+        this.delay = 10000; // 10 seconds
+        this.done = false;
+        this.timeout = null;
+        if (!toolPath) {
+            throw new Error('toolPath must not be empty');
+        }
+        this.options = options;
+        this.toolPath = toolPath;
+        if (options.delay) {
+            this.delay = options.delay;
+        }
+    }
+    CheckComplete() {
+        if (this.done) {
+            return;
+        }
+        if (this.processClosed) {
+            this._setResult();
+        }
+        else if (this.processExited) {
+            this.timeout = timers_1.setTimeout(ExecState.HandleTimeout, this.delay, this);
+        }
+    }
+    _debug(message) {
+        this.emit('debug', message);
+    }
+    _setResult() {
+        // determine whether there is an error
+        let error;
+        if (this.processExited) {
+            if (this.processError) {
+                error = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
+            }
+            else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
+                error = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
+            }
+            else if (this.processStderr && this.options.failOnStdErr) {
+                error = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
+            }
+        }
+        // clear the timeout
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        this.done = true;
+        this.emit('done', error, this.processExitCode);
+    }
+    static HandleTimeout(state) {
+        if (state.done) {
+            return;
+        }
+        if (!state.processClosed && state.processExited) {
+            const message = `The STDIO streams did not close within ${state.delay /
+                1000} seconds of the exit event from process '${state.toolPath}'. This may indicate a child process inherited the STDIO streams and has not yet exited.`;
+            state._debug(message);
+        }
+        state._setResult();
+    }
+}
+//# sourceMappingURL=toolrunner.js.map
+
+/***/ }),
+
+/***/ 1648:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Context = void 0;
+const fs_1 = __nccwpck_require__(9896);
+const os_1 = __nccwpck_require__(857);
+class Context {
+    /**
+     * Hydrate the context from the environment
+     */
+    constructor() {
+        this.payload = {};
+        if (process.env.GITHUB_EVENT_PATH) {
+            if (fs_1.existsSync(process.env.GITHUB_EVENT_PATH)) {
+                this.payload = JSON.parse(fs_1.readFileSync(process.env.GITHUB_EVENT_PATH, { encoding: 'utf8' }));
+            }
+            else {
+                const path = process.env.GITHUB_EVENT_PATH;
+                process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${os_1.EOL}`);
+            }
+        }
+        this.eventName = process.env.GITHUB_EVENT_NAME;
+        this.sha = process.env.GITHUB_SHA;
+        this.ref = process.env.GITHUB_REF;
+        this.workflow = process.env.GITHUB_WORKFLOW;
+        this.action = process.env.GITHUB_ACTION;
+        this.actor = process.env.GITHUB_ACTOR;
+        this.job = process.env.GITHUB_JOB;
+        this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
+        this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
+    }
+    get issue() {
+        const payload = this.payload;
+        return Object.assign(Object.assign({}, this.repo), { number: (payload.issue || payload.pull_request || payload).number });
+    }
+    get repo() {
+        if (process.env.GITHUB_REPOSITORY) {
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+            return { owner, repo };
+        }
+        if (this.payload.repository) {
+            return {
+                owner: this.payload.repository.owner.login,
+                repo: this.payload.repository.name
+            };
+        }
+        throw new Error("context.repo requires a GITHUB_REPOSITORY environment variable like 'owner/repo'");
+    }
+}
+exports.Context = Context;
+//# sourceMappingURL=context.js.map
+
+/***/ }),
+
+/***/ 3228:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getOctokit = exports.context = void 0;
+const Context = __importStar(__nccwpck_require__(1648));
+const utils_1 = __nccwpck_require__(8006);
+exports.context = new Context.Context();
+/**
+ * Returns a hydrated octokit ready to use for GitHub Actions
+ *
+ * @param     token    the repo PAT or GITHUB_TOKEN
+ * @param     options  other options to set
+ */
+function getOctokit(token, options) {
+    return new utils_1.GitHub(utils_1.getOctokitOptions(token, options));
+}
+exports.getOctokit = getOctokit;
+//# sourceMappingURL=github.js.map
+
+/***/ }),
+
+/***/ 5156:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getApiBaseUrl = exports.getProxyAgent = exports.getAuthString = void 0;
+const httpClient = __importStar(__nccwpck_require__(4939));
+function getAuthString(token, options) {
+    if (!token && !options.auth) {
+        throw new Error('Parameter token or opts.auth is required');
+    }
+    else if (token && options.auth) {
+        throw new Error('Parameters token and opts.auth may not both be specified');
+    }
+    return typeof options.auth === 'string' ? options.auth : `token ${token}`;
+}
+exports.getAuthString = getAuthString;
+function getProxyAgent(destinationUrl) {
+    const hc = new httpClient.HttpClient();
+    return hc.getAgent(destinationUrl);
+}
+exports.getProxyAgent = getProxyAgent;
+function getApiBaseUrl() {
+    return process.env['GITHUB_API_URL'] || 'https://api.github.com';
+}
+exports.getApiBaseUrl = getApiBaseUrl;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ 8006:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getOctokitOptions = exports.GitHub = exports.context = void 0;
+const Context = __importStar(__nccwpck_require__(1648));
+const Utils = __importStar(__nccwpck_require__(5156));
+// octokit + plugins
+const core_1 = __nccwpck_require__(1897);
+const plugin_rest_endpoint_methods_1 = __nccwpck_require__(4935);
+const plugin_paginate_rest_1 = __nccwpck_require__(8082);
+exports.context = new Context.Context();
+const baseUrl = Utils.getApiBaseUrl();
+const defaults = {
+    baseUrl,
+    request: {
+        agent: Utils.getProxyAgent(baseUrl)
+    }
+};
+exports.GitHub = core_1.Octokit.plugin(plugin_rest_endpoint_methods_1.restEndpointMethods, plugin_paginate_rest_1.paginateRest).defaults(defaults);
+/**
+ * Convience function to correctly format Octokit Options to pass into the constructor.
+ *
+ * @param     token    the repo PAT or GITHUB_TOKEN
+ * @param     options  other options to set
+ */
+function getOctokitOptions(token, options) {
+    const opts = Object.assign({}, options || {}); // Shallow clone - don't mutate the object provided by the caller
+    // Auth
+    const auth = Utils.getAuthString(token, opts);
+    if (auth) {
+        opts.auth = auth;
+    }
+    return opts;
+}
+exports.getOctokitOptions = getOctokitOptions;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ 4939:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const http = __nccwpck_require__(8611);
+const https = __nccwpck_require__(5692);
+const pm = __nccwpck_require__(4759);
+let tunnel;
+var HttpCodes;
+(function (HttpCodes) {
+    HttpCodes[HttpCodes["OK"] = 200] = "OK";
+    HttpCodes[HttpCodes["MultipleChoices"] = 300] = "MultipleChoices";
+    HttpCodes[HttpCodes["MovedPermanently"] = 301] = "MovedPermanently";
+    HttpCodes[HttpCodes["ResourceMoved"] = 302] = "ResourceMoved";
+    HttpCodes[HttpCodes["SeeOther"] = 303] = "SeeOther";
+    HttpCodes[HttpCodes["NotModified"] = 304] = "NotModified";
+    HttpCodes[HttpCodes["UseProxy"] = 305] = "UseProxy";
+    HttpCodes[HttpCodes["SwitchProxy"] = 306] = "SwitchProxy";
+    HttpCodes[HttpCodes["TemporaryRedirect"] = 307] = "TemporaryRedirect";
+    HttpCodes[HttpCodes["PermanentRedirect"] = 308] = "PermanentRedirect";
+    HttpCodes[HttpCodes["BadRequest"] = 400] = "BadRequest";
+    HttpCodes[HttpCodes["Unauthorized"] = 401] = "Unauthorized";
+    HttpCodes[HttpCodes["PaymentRequired"] = 402] = "PaymentRequired";
+    HttpCodes[HttpCodes["Forbidden"] = 403] = "Forbidden";
+    HttpCodes[HttpCodes["NotFound"] = 404] = "NotFound";
+    HttpCodes[HttpCodes["MethodNotAllowed"] = 405] = "MethodNotAllowed";
+    HttpCodes[HttpCodes["NotAcceptable"] = 406] = "NotAcceptable";
+    HttpCodes[HttpCodes["ProxyAuthenticationRequired"] = 407] = "ProxyAuthenticationRequired";
+    HttpCodes[HttpCodes["RequestTimeout"] = 408] = "RequestTimeout";
+    HttpCodes[HttpCodes["Conflict"] = 409] = "Conflict";
+    HttpCodes[HttpCodes["Gone"] = 410] = "Gone";
+    HttpCodes[HttpCodes["TooManyRequests"] = 429] = "TooManyRequests";
+    HttpCodes[HttpCodes["InternalServerError"] = 500] = "InternalServerError";
+    HttpCodes[HttpCodes["NotImplemented"] = 501] = "NotImplemented";
+    HttpCodes[HttpCodes["BadGateway"] = 502] = "BadGateway";
+    HttpCodes[HttpCodes["ServiceUnavailable"] = 503] = "ServiceUnavailable";
+    HttpCodes[HttpCodes["GatewayTimeout"] = 504] = "GatewayTimeout";
+})(HttpCodes = exports.HttpCodes || (exports.HttpCodes = {}));
+var Headers;
+(function (Headers) {
+    Headers["Accept"] = "accept";
+    Headers["ContentType"] = "content-type";
+})(Headers = exports.Headers || (exports.Headers = {}));
+var MediaTypes;
+(function (MediaTypes) {
+    MediaTypes["ApplicationJson"] = "application/json";
+})(MediaTypes = exports.MediaTypes || (exports.MediaTypes = {}));
+/**
+ * Returns the proxy URL, depending upon the supplied url and proxy environment variables.
+ * @param serverUrl  The server URL where the request will be sent. For example, https://api.github.com
+ */
+function getProxyUrl(serverUrl) {
+    let proxyUrl = pm.getProxyUrl(new URL(serverUrl));
+    return proxyUrl ? proxyUrl.href : '';
+}
+exports.getProxyUrl = getProxyUrl;
+const HttpRedirectCodes = [
+    HttpCodes.MovedPermanently,
+    HttpCodes.ResourceMoved,
+    HttpCodes.SeeOther,
+    HttpCodes.TemporaryRedirect,
+    HttpCodes.PermanentRedirect
+];
+const HttpResponseRetryCodes = [
+    HttpCodes.BadGateway,
+    HttpCodes.ServiceUnavailable,
+    HttpCodes.GatewayTimeout
+];
+const RetryableHttpVerbs = ['OPTIONS', 'GET', 'DELETE', 'HEAD'];
+const ExponentialBackoffCeiling = 10;
+const ExponentialBackoffTimeSlice = 5;
+class HttpClientError extends Error {
+    constructor(message, statusCode) {
+        super(message);
+        this.name = 'HttpClientError';
+        this.statusCode = statusCode;
+        Object.setPrototypeOf(this, HttpClientError.prototype);
+    }
+}
+exports.HttpClientError = HttpClientError;
+class HttpClientResponse {
+    constructor(message) {
+        this.message = message;
+    }
+    readBody() {
+        return new Promise(async (resolve, reject) => {
+            let output = Buffer.alloc(0);
+            this.message.on('data', (chunk) => {
+                output = Buffer.concat([output, chunk]);
+            });
+            this.message.on('end', () => {
+                resolve(output.toString());
+            });
+        });
+    }
+}
+exports.HttpClientResponse = HttpClientResponse;
+function isHttps(requestUrl) {
+    let parsedUrl = new URL(requestUrl);
+    return parsedUrl.protocol === 'https:';
+}
+exports.isHttps = isHttps;
+class HttpClient {
+    constructor(userAgent, handlers, requestOptions) {
+        this._ignoreSslError = false;
+        this._allowRedirects = true;
+        this._allowRedirectDowngrade = false;
+        this._maxRedirects = 50;
+        this._allowRetries = false;
+        this._maxRetries = 1;
+        this._keepAlive = false;
+        this._disposed = false;
+        this.userAgent = userAgent;
+        this.handlers = handlers || [];
+        this.requestOptions = requestOptions;
+        if (requestOptions) {
+            if (requestOptions.ignoreSslError != null) {
+                this._ignoreSslError = requestOptions.ignoreSslError;
+            }
+            this._socketTimeout = requestOptions.socketTimeout;
+            if (requestOptions.allowRedirects != null) {
+                this._allowRedirects = requestOptions.allowRedirects;
+            }
+            if (requestOptions.allowRedirectDowngrade != null) {
+                this._allowRedirectDowngrade = requestOptions.allowRedirectDowngrade;
+            }
+            if (requestOptions.maxRedirects != null) {
+                this._maxRedirects = Math.max(requestOptions.maxRedirects, 0);
+            }
+            if (requestOptions.keepAlive != null) {
+                this._keepAlive = requestOptions.keepAlive;
+            }
+            if (requestOptions.allowRetries != null) {
+                this._allowRetries = requestOptions.allowRetries;
+            }
+            if (requestOptions.maxRetries != null) {
+                this._maxRetries = requestOptions.maxRetries;
+            }
+        }
+    }
+    options(requestUrl, additionalHeaders) {
+        return this.request('OPTIONS', requestUrl, null, additionalHeaders || {});
+    }
+    get(requestUrl, additionalHeaders) {
+        return this.request('GET', requestUrl, null, additionalHeaders || {});
+    }
+    del(requestUrl, additionalHeaders) {
+        return this.request('DELETE', requestUrl, null, additionalHeaders || {});
+    }
+    post(requestUrl, data, additionalHeaders) {
+        return this.request('POST', requestUrl, data, additionalHeaders || {});
+    }
+    patch(requestUrl, data, additionalHeaders) {
+        return this.request('PATCH', requestUrl, data, additionalHeaders || {});
+    }
+    put(requestUrl, data, additionalHeaders) {
+        return this.request('PUT', requestUrl, data, additionalHeaders || {});
+    }
+    head(requestUrl, additionalHeaders) {
+        return this.request('HEAD', requestUrl, null, additionalHeaders || {});
+    }
+    sendStream(verb, requestUrl, stream, additionalHeaders) {
+        return this.request(verb, requestUrl, stream, additionalHeaders);
+    }
+    /**
+     * Gets a typed object from an endpoint
+     * Be aware that not found returns a null.  Other errors (4xx, 5xx) reject the promise
+     */
+    async getJson(requestUrl, additionalHeaders = {}) {
+        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+        let res = await this.get(requestUrl, additionalHeaders);
+        return this._processResponse(res, this.requestOptions);
+    }
+    async postJson(requestUrl, obj, additionalHeaders = {}) {
+        let data = JSON.stringify(obj, null, 2);
+        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
+        let res = await this.post(requestUrl, data, additionalHeaders);
+        return this._processResponse(res, this.requestOptions);
+    }
+    async putJson(requestUrl, obj, additionalHeaders = {}) {
+        let data = JSON.stringify(obj, null, 2);
+        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
+        let res = await this.put(requestUrl, data, additionalHeaders);
+        return this._processResponse(res, this.requestOptions);
+    }
+    async patchJson(requestUrl, obj, additionalHeaders = {}) {
+        let data = JSON.stringify(obj, null, 2);
+        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
+        let res = await this.patch(requestUrl, data, additionalHeaders);
+        return this._processResponse(res, this.requestOptions);
+    }
+    /**
+     * Makes a raw http request.
+     * All other methods such as get, post, patch, and request ultimately call this.
+     * Prefer get, del, post and patch
+     */
+    async request(verb, requestUrl, data, headers) {
+        if (this._disposed) {
+            throw new Error('Client has already been disposed.');
+        }
+        let parsedUrl = new URL(requestUrl);
+        let info = this._prepareRequest(verb, parsedUrl, headers);
+        // Only perform retries on reads since writes may not be idempotent.
+        let maxTries = this._allowRetries && RetryableHttpVerbs.indexOf(verb) != -1
+            ? this._maxRetries + 1
+            : 1;
+        let numTries = 0;
+        let response;
+        while (numTries < maxTries) {
+            response = await this.requestRaw(info, data);
+            // Check if it's an authentication challenge
+            if (response &&
+                response.message &&
+                response.message.statusCode === HttpCodes.Unauthorized) {
+                let authenticationHandler;
+                for (let i = 0; i < this.handlers.length; i++) {
+                    if (this.handlers[i].canHandleAuthentication(response)) {
+                        authenticationHandler = this.handlers[i];
+                        break;
+                    }
+                }
+                if (authenticationHandler) {
+                    return authenticationHandler.handleAuthentication(this, info, data);
+                }
+                else {
+                    // We have received an unauthorized response but have no handlers to handle it.
+                    // Let the response return to the caller.
+                    return response;
+                }
+            }
+            let redirectsRemaining = this._maxRedirects;
+            while (HttpRedirectCodes.indexOf(response.message.statusCode) != -1 &&
+                this._allowRedirects &&
+                redirectsRemaining > 0) {
+                const redirectUrl = response.message.headers['location'];
+                if (!redirectUrl) {
+                    // if there's no location to redirect to, we won't
+                    break;
+                }
+                let parsedRedirectUrl = new URL(redirectUrl);
+                if (parsedUrl.protocol == 'https:' &&
+                    parsedUrl.protocol != parsedRedirectUrl.protocol &&
+                    !this._allowRedirectDowngrade) {
+                    throw new Error('Redirect from HTTPS to HTTP protocol. This downgrade is not allowed for security reasons. If you want to allow this behavior, set the allowRedirectDowngrade option to true.');
+                }
+                // we need to finish reading the response before reassigning response
+                // which will leak the open socket.
+                await response.readBody();
+                // strip authorization header if redirected to a different hostname
+                if (parsedRedirectUrl.hostname !== parsedUrl.hostname) {
+                    for (let header in headers) {
+                        // header names are case insensitive
+                        if (header.toLowerCase() === 'authorization') {
+                            delete headers[header];
+                        }
+                    }
+                }
+                // let's make the request with the new redirectUrl
+                info = this._prepareRequest(verb, parsedRedirectUrl, headers);
+                response = await this.requestRaw(info, data);
+                redirectsRemaining--;
+            }
+            if (HttpResponseRetryCodes.indexOf(response.message.statusCode) == -1) {
+                // If not a retry code, return immediately instead of retrying
+                return response;
+            }
+            numTries += 1;
+            if (numTries < maxTries) {
+                await response.readBody();
+                await this._performExponentialBackoff(numTries);
+            }
+        }
+        return response;
+    }
+    /**
+     * Needs to be called if keepAlive is set to true in request options.
+     */
+    dispose() {
+        if (this._agent) {
+            this._agent.destroy();
+        }
+        this._disposed = true;
+    }
+    /**
+     * Raw request.
+     * @param info
+     * @param data
+     */
+    requestRaw(info, data) {
+        return new Promise((resolve, reject) => {
+            let callbackForResult = function (err, res) {
+                if (err) {
+                    reject(err);
+                }
+                resolve(res);
+            };
+            this.requestRawWithCallback(info, data, callbackForResult);
+        });
+    }
+    /**
+     * Raw request with callback.
+     * @param info
+     * @param data
+     * @param onResult
+     */
+    requestRawWithCallback(info, data, onResult) {
+        let socket;
+        if (typeof data === 'string') {
+            info.options.headers['Content-Length'] = Buffer.byteLength(data, 'utf8');
+        }
+        let callbackCalled = false;
+        let handleResult = (err, res) => {
+            if (!callbackCalled) {
+                callbackCalled = true;
+                onResult(err, res);
+            }
+        };
+        let req = info.httpModule.request(info.options, (msg) => {
+            let res = new HttpClientResponse(msg);
+            handleResult(null, res);
+        });
+        req.on('socket', sock => {
+            socket = sock;
+        });
+        // If we ever get disconnected, we want the socket to timeout eventually
+        req.setTimeout(this._socketTimeout || 3 * 60000, () => {
+            if (socket) {
+                socket.end();
+            }
+            handleResult(new Error('Request timeout: ' + info.options.path), null);
+        });
+        req.on('error', function (err) {
+            // err has statusCode property
+            // res should have headers
+            handleResult(err, null);
+        });
+        if (data && typeof data === 'string') {
+            req.write(data, 'utf8');
+        }
+        if (data && typeof data !== 'string') {
+            data.on('close', function () {
+                req.end();
+            });
+            data.pipe(req);
+        }
+        else {
+            req.end();
+        }
+    }
+    /**
+     * Gets an http agent. This function is useful when you need an http agent that handles
+     * routing through a proxy server - depending upon the url and proxy environment variables.
+     * @param serverUrl  The server URL where the request will be sent. For example, https://api.github.com
+     */
+    getAgent(serverUrl) {
+        let parsedUrl = new URL(serverUrl);
+        return this._getAgent(parsedUrl);
+    }
+    _prepareRequest(method, requestUrl, headers) {
+        const info = {};
+        info.parsedUrl = requestUrl;
+        const usingSsl = info.parsedUrl.protocol === 'https:';
+        info.httpModule = usingSsl ? https : http;
+        const defaultPort = usingSsl ? 443 : 80;
+        info.options = {};
+        info.options.host = info.parsedUrl.hostname;
+        info.options.port = info.parsedUrl.port
+            ? parseInt(info.parsedUrl.port)
+            : defaultPort;
+        info.options.path =
+            (info.parsedUrl.pathname || '') + (info.parsedUrl.search || '');
+        info.options.method = method;
+        info.options.headers = this._mergeHeaders(headers);
+        if (this.userAgent != null) {
+            info.options.headers['user-agent'] = this.userAgent;
+        }
+        info.options.agent = this._getAgent(info.parsedUrl);
+        // gives handlers an opportunity to participate
+        if (this.handlers) {
+            this.handlers.forEach(handler => {
+                handler.prepareRequest(info.options);
+            });
+        }
+        return info;
+    }
+    _mergeHeaders(headers) {
+        const lowercaseKeys = obj => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
+        if (this.requestOptions && this.requestOptions.headers) {
+            return Object.assign({}, lowercaseKeys(this.requestOptions.headers), lowercaseKeys(headers));
+        }
+        return lowercaseKeys(headers || {});
+    }
+    _getExistingOrDefaultHeader(additionalHeaders, header, _default) {
+        const lowercaseKeys = obj => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
+        let clientHeader;
+        if (this.requestOptions && this.requestOptions.headers) {
+            clientHeader = lowercaseKeys(this.requestOptions.headers)[header];
+        }
+        return additionalHeaders[header] || clientHeader || _default;
+    }
+    _getAgent(parsedUrl) {
+        let agent;
+        let proxyUrl = pm.getProxyUrl(parsedUrl);
+        let useProxy = proxyUrl && proxyUrl.hostname;
+        if (this._keepAlive && useProxy) {
+            agent = this._proxyAgent;
+        }
+        if (this._keepAlive && !useProxy) {
+            agent = this._agent;
+        }
+        // if agent is already assigned use that agent.
+        if (!!agent) {
+            return agent;
+        }
+        const usingSsl = parsedUrl.protocol === 'https:';
+        let maxSockets = 100;
+        if (!!this.requestOptions) {
+            maxSockets = this.requestOptions.maxSockets || http.globalAgent.maxSockets;
+        }
+        if (useProxy) {
+            // If using proxy, need tunnel
+            if (!tunnel) {
+                tunnel = __nccwpck_require__(770);
+            }
+            const agentOptions = {
+                maxSockets: maxSockets,
+                keepAlive: this._keepAlive,
+                proxy: {
+                    ...((proxyUrl.username || proxyUrl.password) && {
+                        proxyAuth: `${proxyUrl.username}:${proxyUrl.password}`
+                    }),
+                    host: proxyUrl.hostname,
+                    port: proxyUrl.port
+                }
+            };
+            let tunnelAgent;
+            const overHttps = proxyUrl.protocol === 'https:';
+            if (usingSsl) {
+                tunnelAgent = overHttps ? tunnel.httpsOverHttps : tunnel.httpsOverHttp;
+            }
+            else {
+                tunnelAgent = overHttps ? tunnel.httpOverHttps : tunnel.httpOverHttp;
+            }
+            agent = tunnelAgent(agentOptions);
+            this._proxyAgent = agent;
+        }
+        // if reusing agent across request and tunneling agent isn't assigned create a new agent
+        if (this._keepAlive && !agent) {
+            const options = { keepAlive: this._keepAlive, maxSockets: maxSockets };
+            agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
+            this._agent = agent;
+        }
+        // if not using private agent and tunnel agent isn't setup then use global agent
+        if (!agent) {
+            agent = usingSsl ? https.globalAgent : http.globalAgent;
+        }
+        if (usingSsl && this._ignoreSslError) {
+            // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
+            // http.RequestOptions doesn't expose a way to modify RequestOptions.agent.options
+            // we have to cast it to any and change it directly
+            agent.options = Object.assign(agent.options || {}, {
+                rejectUnauthorized: false
+            });
+        }
+        return agent;
+    }
+    _performExponentialBackoff(retryNumber) {
+        retryNumber = Math.min(ExponentialBackoffCeiling, retryNumber);
+        const ms = ExponentialBackoffTimeSlice * Math.pow(2, retryNumber);
+        return new Promise(resolve => setTimeout(() => resolve(), ms));
+    }
+    static dateTimeDeserializer(key, value) {
+        if (typeof value === 'string') {
+            let a = new Date(value);
+            if (!isNaN(a.valueOf())) {
+                return a;
+            }
+        }
+        return value;
+    }
+    async _processResponse(res, options) {
+        return new Promise(async (resolve, reject) => {
+            const statusCode = res.message.statusCode;
+            const response = {
+                statusCode: statusCode,
+                result: null,
+                headers: {}
+            };
+            // not found leads to null obj returned
+            if (statusCode == HttpCodes.NotFound) {
+                resolve(response);
+            }
+            let obj;
+            let contents;
+            // get the result from the body
+            try {
+                contents = await res.readBody();
+                if (contents && contents.length > 0) {
+                    if (options && options.deserializeDates) {
+                        obj = JSON.parse(contents, HttpClient.dateTimeDeserializer);
+                    }
+                    else {
+                        obj = JSON.parse(contents);
+                    }
+                    response.result = obj;
+                }
+                response.headers = res.message.headers;
+            }
+            catch (err) {
+                // Invalid resource (contents not json);  leaving result obj null
+            }
+            // note that 3xx redirects are handled by the http layer.
+            if (statusCode > 299) {
+                let msg;
+                // if exception/error in body, attempt to get better error
+                if (obj && obj.message) {
+                    msg = obj.message;
+                }
+                else if (contents && contents.length > 0) {
+                    // it may be the case that the exception is in the body message as string
+                    msg = contents;
+                }
+                else {
+                    msg = 'Failed request: (' + statusCode + ')';
+                }
+                let err = new HttpClientError(msg, statusCode);
+                err.result = response.result;
+                reject(err);
+            }
+            else {
+                resolve(response);
+            }
+        });
+    }
+}
+exports.HttpClient = HttpClient;
+
+
+/***/ }),
+
+/***/ 4759:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+function getProxyUrl(reqUrl) {
+    let usingSsl = reqUrl.protocol === 'https:';
+    let proxyUrl;
+    if (checkBypass(reqUrl)) {
+        return proxyUrl;
+    }
+    let proxyVar;
+    if (usingSsl) {
+        proxyVar = process.env['https_proxy'] || process.env['HTTPS_PROXY'];
+    }
+    else {
+        proxyVar = process.env['http_proxy'] || process.env['HTTP_PROXY'];
+    }
+    if (proxyVar) {
+        proxyUrl = new URL(proxyVar);
+    }
+    return proxyUrl;
+}
+exports.getProxyUrl = getProxyUrl;
+function checkBypass(reqUrl) {
+    if (!reqUrl.hostname) {
+        return false;
+    }
+    let noProxy = process.env['no_proxy'] || process.env['NO_PROXY'] || '';
+    if (!noProxy) {
+        return false;
+    }
+    // Determine the request port
+    let reqPort;
+    if (reqUrl.port) {
+        reqPort = Number(reqUrl.port);
+    }
+    else if (reqUrl.protocol === 'http:') {
+        reqPort = 80;
+    }
+    else if (reqUrl.protocol === 'https:') {
+        reqPort = 443;
+    }
+    // Format the request hostname and hostname with port
+    let upperReqHosts = [reqUrl.hostname.toUpperCase()];
+    if (typeof reqPort === 'number') {
+        upperReqHosts.push(`${upperReqHosts[0]}:${reqPort}`);
+    }
+    // Compare request host against noproxy
+    for (let upperNoProxyItem of noProxy
+        .split(',')
+        .map(x => x.trim().toUpperCase())
+        .filter(x => x)) {
+        if (upperReqHosts.some(x => x === upperNoProxyItem)) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.checkBypass = checkBypass;
+
+
+/***/ }),
+
+/***/ 4552:
 /***/ (function(__unused_webpack_module, exports) {
 
 "use strict";
@@ -1067,7 +2759,7 @@ exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHand
 
 /***/ }),
 
-/***/ 8163:
+/***/ 4844:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1109,7 +2801,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HttpClient = exports.isHttps = exports.HttpClientResponse = exports.HttpClientError = exports.getProxyUrl = exports.MediaTypes = exports.Headers = exports.HttpCodes = void 0;
 const http = __importStar(__nccwpck_require__(8611));
 const https = __importStar(__nccwpck_require__(5692));
-const pm = __importStar(__nccwpck_require__(3695));
+const pm = __importStar(__nccwpck_require__(4988));
 const tunnel = __importStar(__nccwpck_require__(770));
 const undici_1 = __nccwpck_require__(6752);
 var HttpCodes;
@@ -1575,7 +3267,7 @@ class HttpClient {
         if (this._keepAlive && useProxy) {
             agent = this._proxyAgent;
         }
-        if (this._keepAlive && !useProxy) {
+        if (!useProxy) {
             agent = this._agent;
         }
         // if agent is already assigned use that agent.
@@ -1607,15 +3299,11 @@ class HttpClient {
             agent = tunnelAgent(agentOptions);
             this._proxyAgent = agent;
         }
-        // if reusing agent across request and tunneling agent isn't assigned create a new agent
-        if (this._keepAlive && !agent) {
+        // if tunneling agent isn't assigned create a new agent
+        if (!agent) {
             const options = { keepAlive: this._keepAlive, maxSockets };
             agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
             this._agent = agent;
-        }
-        // if not using private agent and tunnel agent isn't setup then use global agent
-        if (!agent) {
-            agent = usingSsl ? https.globalAgent : http.globalAgent;
         }
         if (usingSsl && this._ignoreSslError) {
             // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
@@ -1638,7 +3326,7 @@ class HttpClient {
         }
         const usingSsl = parsedUrl.protocol === 'https:';
         proxyAgent = new undici_1.ProxyAgent(Object.assign({ uri: proxyUrl.href, pipelining: !this._keepAlive ? 0 : 1 }, ((proxyUrl.username || proxyUrl.password) && {
-            token: `${proxyUrl.username}:${proxyUrl.password}`
+            token: `Basic ${Buffer.from(`${proxyUrl.username}:${proxyUrl.password}`).toString('base64')}`
         })));
         this._proxyAgentDispatcher = proxyAgent;
         if (usingSsl && this._ignoreSslError) {
@@ -1730,7 +3418,7 @@ const lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCa
 
 /***/ }),
 
-/***/ 3695:
+/***/ 4988:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -1752,11 +3440,11 @@ function getProxyUrl(reqUrl) {
     })();
     if (proxyVar) {
         try {
-            return new URL(proxyVar);
+            return new DecodedURL(proxyVar);
         }
         catch (_a) {
             if (!proxyVar.startsWith('http://') && !proxyVar.startsWith('https://'))
-                return new URL(`http://${proxyVar}`);
+                return new DecodedURL(`http://${proxyVar}`);
         }
     }
     else {
@@ -1815,823 +3503,516 @@ function isLoopbackAddress(host) {
         hostLower.startsWith('[::1]') ||
         hostLower.startsWith('[0:0:0:0:0:0:0:1]'));
 }
+class DecodedURL extends URL {
+    constructor(url, base) {
+        super(url, base);
+        this._decodedUsername = decodeURIComponent(super.username);
+        this._decodedPassword = decodeURIComponent(super.password);
+    }
+    get username() {
+        return this._decodedUsername;
+    }
+    get password() {
+        return this._decodedPassword;
+    }
+}
 //# sourceMappingURL=proxy.js.map
 
 /***/ }),
 
-/***/ 1648:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ 5207:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Context = void 0;
-const fs_1 = __nccwpck_require__(9896);
-const os_1 = __nccwpck_require__(857);
-class Context {
-    /**
-     * Hydrate the context from the environment
-     */
-    constructor() {
-        this.payload = {};
-        if (process.env.GITHUB_EVENT_PATH) {
-            if (fs_1.existsSync(process.env.GITHUB_EVENT_PATH)) {
-                this.payload = JSON.parse(fs_1.readFileSync(process.env.GITHUB_EVENT_PATH, { encoding: 'utf8' }));
+exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
+const fs = __importStar(__nccwpck_require__(9896));
+const path = __importStar(__nccwpck_require__(6928));
+_a = fs.promises
+// export const {open} = 'fs'
+, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
+// export const {open} = 'fs'
+exports.IS_WINDOWS = process.platform === 'win32';
+// See https://github.com/nodejs/node/blob/d0153aee367422d0858105abec186da4dff0a0c5/deps/uv/include/uv/win.h#L691
+exports.UV_FS_O_EXLOCK = 0x10000000;
+exports.READONLY = fs.constants.O_RDONLY;
+function exists(fsPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield exports.stat(fsPath);
+        }
+        catch (err) {
+            if (err.code === 'ENOENT') {
+                return false;
+            }
+            throw err;
+        }
+        return true;
+    });
+}
+exports.exists = exists;
+function isDirectory(fsPath, useStat = false) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const stats = useStat ? yield exports.stat(fsPath) : yield exports.lstat(fsPath);
+        return stats.isDirectory();
+    });
+}
+exports.isDirectory = isDirectory;
+/**
+ * On OSX/Linux, true if path starts with '/'. On Windows, true for paths like:
+ * \, \hello, \\hello\share, C:, and C:\hello (and corresponding alternate separator cases).
+ */
+function isRooted(p) {
+    p = normalizeSeparators(p);
+    if (!p) {
+        throw new Error('isRooted() parameter "p" cannot be empty');
+    }
+    if (exports.IS_WINDOWS) {
+        return (p.startsWith('\\') || /^[A-Z]:/i.test(p) // e.g. \ or \hello or \\hello
+        ); // e.g. C: or C:\hello
+    }
+    return p.startsWith('/');
+}
+exports.isRooted = isRooted;
+/**
+ * Best effort attempt to determine whether a file exists and is executable.
+ * @param filePath    file path to check
+ * @param extensions  additional file extensions to try
+ * @return if file exists and is executable, returns the file path. otherwise empty string.
+ */
+function tryGetExecutablePath(filePath, extensions) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let stats = undefined;
+        try {
+            // test file exists
+            stats = yield exports.stat(filePath);
+        }
+        catch (err) {
+            if (err.code !== 'ENOENT') {
+                // eslint-disable-next-line no-console
+                console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
+            }
+        }
+        if (stats && stats.isFile()) {
+            if (exports.IS_WINDOWS) {
+                // on Windows, test for valid extension
+                const upperExt = path.extname(filePath).toUpperCase();
+                if (extensions.some(validExt => validExt.toUpperCase() === upperExt)) {
+                    return filePath;
+                }
             }
             else {
-                const path = process.env.GITHUB_EVENT_PATH;
-                process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${os_1.EOL}`);
-            }
-        }
-        this.eventName = process.env.GITHUB_EVENT_NAME;
-        this.sha = process.env.GITHUB_SHA;
-        this.ref = process.env.GITHUB_REF;
-        this.workflow = process.env.GITHUB_WORKFLOW;
-        this.action = process.env.GITHUB_ACTION;
-        this.actor = process.env.GITHUB_ACTOR;
-        this.job = process.env.GITHUB_JOB;
-        this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
-        this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
-    }
-    get issue() {
-        const payload = this.payload;
-        return Object.assign(Object.assign({}, this.repo), { number: (payload.issue || payload.pull_request || payload).number });
-    }
-    get repo() {
-        if (process.env.GITHUB_REPOSITORY) {
-            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
-            return { owner, repo };
-        }
-        if (this.payload.repository) {
-            return {
-                owner: this.payload.repository.owner.login,
-                repo: this.payload.repository.name
-            };
-        }
-        throw new Error("context.repo requires a GITHUB_REPOSITORY environment variable like 'owner/repo'");
-    }
-}
-exports.Context = Context;
-//# sourceMappingURL=context.js.map
-
-/***/ }),
-
-/***/ 3228:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getOctokit = exports.context = void 0;
-const Context = __importStar(__nccwpck_require__(1648));
-const utils_1 = __nccwpck_require__(8006);
-exports.context = new Context.Context();
-/**
- * Returns a hydrated octokit ready to use for GitHub Actions
- *
- * @param     token    the repo PAT or GITHUB_TOKEN
- * @param     options  other options to set
- */
-function getOctokit(token, options) {
-    return new utils_1.GitHub(utils_1.getOctokitOptions(token, options));
-}
-exports.getOctokit = getOctokit;
-//# sourceMappingURL=github.js.map
-
-/***/ }),
-
-/***/ 5156:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getApiBaseUrl = exports.getProxyAgent = exports.getAuthString = void 0;
-const httpClient = __importStar(__nccwpck_require__(2192));
-function getAuthString(token, options) {
-    if (!token && !options.auth) {
-        throw new Error('Parameter token or opts.auth is required');
-    }
-    else if (token && options.auth) {
-        throw new Error('Parameters token and opts.auth may not both be specified');
-    }
-    return typeof options.auth === 'string' ? options.auth : `token ${token}`;
-}
-exports.getAuthString = getAuthString;
-function getProxyAgent(destinationUrl) {
-    const hc = new httpClient.HttpClient();
-    return hc.getAgent(destinationUrl);
-}
-exports.getProxyAgent = getProxyAgent;
-function getApiBaseUrl() {
-    return process.env['GITHUB_API_URL'] || 'https://api.github.com';
-}
-exports.getApiBaseUrl = getApiBaseUrl;
-//# sourceMappingURL=utils.js.map
-
-/***/ }),
-
-/***/ 8006:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getOctokitOptions = exports.GitHub = exports.context = void 0;
-const Context = __importStar(__nccwpck_require__(1648));
-const Utils = __importStar(__nccwpck_require__(5156));
-// octokit + plugins
-const core_1 = __nccwpck_require__(1897);
-const plugin_rest_endpoint_methods_1 = __nccwpck_require__(4935);
-const plugin_paginate_rest_1 = __nccwpck_require__(8082);
-exports.context = new Context.Context();
-const baseUrl = Utils.getApiBaseUrl();
-const defaults = {
-    baseUrl,
-    request: {
-        agent: Utils.getProxyAgent(baseUrl)
-    }
-};
-exports.GitHub = core_1.Octokit.plugin(plugin_rest_endpoint_methods_1.restEndpointMethods, plugin_paginate_rest_1.paginateRest).defaults(defaults);
-/**
- * Convience function to correctly format Octokit Options to pass into the constructor.
- *
- * @param     token    the repo PAT or GITHUB_TOKEN
- * @param     options  other options to set
- */
-function getOctokitOptions(token, options) {
-    const opts = Object.assign({}, options || {}); // Shallow clone - don't mutate the object provided by the caller
-    // Auth
-    const auth = Utils.getAuthString(token, opts);
-    if (auth) {
-        opts.auth = auth;
-    }
-    return opts;
-}
-exports.getOctokitOptions = getOctokitOptions;
-//# sourceMappingURL=utils.js.map
-
-/***/ }),
-
-/***/ 2192:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const url = __nccwpck_require__(7016);
-const http = __nccwpck_require__(8611);
-const https = __nccwpck_require__(5692);
-const pm = __nccwpck_require__(624);
-let tunnel;
-var HttpCodes;
-(function (HttpCodes) {
-    HttpCodes[HttpCodes["OK"] = 200] = "OK";
-    HttpCodes[HttpCodes["MultipleChoices"] = 300] = "MultipleChoices";
-    HttpCodes[HttpCodes["MovedPermanently"] = 301] = "MovedPermanently";
-    HttpCodes[HttpCodes["ResourceMoved"] = 302] = "ResourceMoved";
-    HttpCodes[HttpCodes["SeeOther"] = 303] = "SeeOther";
-    HttpCodes[HttpCodes["NotModified"] = 304] = "NotModified";
-    HttpCodes[HttpCodes["UseProxy"] = 305] = "UseProxy";
-    HttpCodes[HttpCodes["SwitchProxy"] = 306] = "SwitchProxy";
-    HttpCodes[HttpCodes["TemporaryRedirect"] = 307] = "TemporaryRedirect";
-    HttpCodes[HttpCodes["PermanentRedirect"] = 308] = "PermanentRedirect";
-    HttpCodes[HttpCodes["BadRequest"] = 400] = "BadRequest";
-    HttpCodes[HttpCodes["Unauthorized"] = 401] = "Unauthorized";
-    HttpCodes[HttpCodes["PaymentRequired"] = 402] = "PaymentRequired";
-    HttpCodes[HttpCodes["Forbidden"] = 403] = "Forbidden";
-    HttpCodes[HttpCodes["NotFound"] = 404] = "NotFound";
-    HttpCodes[HttpCodes["MethodNotAllowed"] = 405] = "MethodNotAllowed";
-    HttpCodes[HttpCodes["NotAcceptable"] = 406] = "NotAcceptable";
-    HttpCodes[HttpCodes["ProxyAuthenticationRequired"] = 407] = "ProxyAuthenticationRequired";
-    HttpCodes[HttpCodes["RequestTimeout"] = 408] = "RequestTimeout";
-    HttpCodes[HttpCodes["Conflict"] = 409] = "Conflict";
-    HttpCodes[HttpCodes["Gone"] = 410] = "Gone";
-    HttpCodes[HttpCodes["TooManyRequests"] = 429] = "TooManyRequests";
-    HttpCodes[HttpCodes["InternalServerError"] = 500] = "InternalServerError";
-    HttpCodes[HttpCodes["NotImplemented"] = 501] = "NotImplemented";
-    HttpCodes[HttpCodes["BadGateway"] = 502] = "BadGateway";
-    HttpCodes[HttpCodes["ServiceUnavailable"] = 503] = "ServiceUnavailable";
-    HttpCodes[HttpCodes["GatewayTimeout"] = 504] = "GatewayTimeout";
-})(HttpCodes = exports.HttpCodes || (exports.HttpCodes = {}));
-var Headers;
-(function (Headers) {
-    Headers["Accept"] = "accept";
-    Headers["ContentType"] = "content-type";
-})(Headers = exports.Headers || (exports.Headers = {}));
-var MediaTypes;
-(function (MediaTypes) {
-    MediaTypes["ApplicationJson"] = "application/json";
-})(MediaTypes = exports.MediaTypes || (exports.MediaTypes = {}));
-/**
- * Returns the proxy URL, depending upon the supplied url and proxy environment variables.
- * @param serverUrl  The server URL where the request will be sent. For example, https://api.github.com
- */
-function getProxyUrl(serverUrl) {
-    let proxyUrl = pm.getProxyUrl(url.parse(serverUrl));
-    return proxyUrl ? proxyUrl.href : '';
-}
-exports.getProxyUrl = getProxyUrl;
-const HttpRedirectCodes = [
-    HttpCodes.MovedPermanently,
-    HttpCodes.ResourceMoved,
-    HttpCodes.SeeOther,
-    HttpCodes.TemporaryRedirect,
-    HttpCodes.PermanentRedirect
-];
-const HttpResponseRetryCodes = [
-    HttpCodes.BadGateway,
-    HttpCodes.ServiceUnavailable,
-    HttpCodes.GatewayTimeout
-];
-const RetryableHttpVerbs = ['OPTIONS', 'GET', 'DELETE', 'HEAD'];
-const ExponentialBackoffCeiling = 10;
-const ExponentialBackoffTimeSlice = 5;
-class HttpClientResponse {
-    constructor(message) {
-        this.message = message;
-    }
-    readBody() {
-        return new Promise(async (resolve, reject) => {
-            let output = Buffer.alloc(0);
-            this.message.on('data', (chunk) => {
-                output = Buffer.concat([output, chunk]);
-            });
-            this.message.on('end', () => {
-                resolve(output.toString());
-            });
-        });
-    }
-}
-exports.HttpClientResponse = HttpClientResponse;
-function isHttps(requestUrl) {
-    let parsedUrl = url.parse(requestUrl);
-    return parsedUrl.protocol === 'https:';
-}
-exports.isHttps = isHttps;
-class HttpClient {
-    constructor(userAgent, handlers, requestOptions) {
-        this._ignoreSslError = false;
-        this._allowRedirects = true;
-        this._allowRedirectDowngrade = false;
-        this._maxRedirects = 50;
-        this._allowRetries = false;
-        this._maxRetries = 1;
-        this._keepAlive = false;
-        this._disposed = false;
-        this.userAgent = userAgent;
-        this.handlers = handlers || [];
-        this.requestOptions = requestOptions;
-        if (requestOptions) {
-            if (requestOptions.ignoreSslError != null) {
-                this._ignoreSslError = requestOptions.ignoreSslError;
-            }
-            this._socketTimeout = requestOptions.socketTimeout;
-            if (requestOptions.allowRedirects != null) {
-                this._allowRedirects = requestOptions.allowRedirects;
-            }
-            if (requestOptions.allowRedirectDowngrade != null) {
-                this._allowRedirectDowngrade = requestOptions.allowRedirectDowngrade;
-            }
-            if (requestOptions.maxRedirects != null) {
-                this._maxRedirects = Math.max(requestOptions.maxRedirects, 0);
-            }
-            if (requestOptions.keepAlive != null) {
-                this._keepAlive = requestOptions.keepAlive;
-            }
-            if (requestOptions.allowRetries != null) {
-                this._allowRetries = requestOptions.allowRetries;
-            }
-            if (requestOptions.maxRetries != null) {
-                this._maxRetries = requestOptions.maxRetries;
-            }
-        }
-    }
-    options(requestUrl, additionalHeaders) {
-        return this.request('OPTIONS', requestUrl, null, additionalHeaders || {});
-    }
-    get(requestUrl, additionalHeaders) {
-        return this.request('GET', requestUrl, null, additionalHeaders || {});
-    }
-    del(requestUrl, additionalHeaders) {
-        return this.request('DELETE', requestUrl, null, additionalHeaders || {});
-    }
-    post(requestUrl, data, additionalHeaders) {
-        return this.request('POST', requestUrl, data, additionalHeaders || {});
-    }
-    patch(requestUrl, data, additionalHeaders) {
-        return this.request('PATCH', requestUrl, data, additionalHeaders || {});
-    }
-    put(requestUrl, data, additionalHeaders) {
-        return this.request('PUT', requestUrl, data, additionalHeaders || {});
-    }
-    head(requestUrl, additionalHeaders) {
-        return this.request('HEAD', requestUrl, null, additionalHeaders || {});
-    }
-    sendStream(verb, requestUrl, stream, additionalHeaders) {
-        return this.request(verb, requestUrl, stream, additionalHeaders);
-    }
-    /**
-     * Gets a typed object from an endpoint
-     * Be aware that not found returns a null.  Other errors (4xx, 5xx) reject the promise
-     */
-    async getJson(requestUrl, additionalHeaders = {}) {
-        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
-        let res = await this.get(requestUrl, additionalHeaders);
-        return this._processResponse(res, this.requestOptions);
-    }
-    async postJson(requestUrl, obj, additionalHeaders = {}) {
-        let data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
-        let res = await this.post(requestUrl, data, additionalHeaders);
-        return this._processResponse(res, this.requestOptions);
-    }
-    async putJson(requestUrl, obj, additionalHeaders = {}) {
-        let data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
-        let res = await this.put(requestUrl, data, additionalHeaders);
-        return this._processResponse(res, this.requestOptions);
-    }
-    async patchJson(requestUrl, obj, additionalHeaders = {}) {
-        let data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
-        let res = await this.patch(requestUrl, data, additionalHeaders);
-        return this._processResponse(res, this.requestOptions);
-    }
-    /**
-     * Makes a raw http request.
-     * All other methods such as get, post, patch, and request ultimately call this.
-     * Prefer get, del, post and patch
-     */
-    async request(verb, requestUrl, data, headers) {
-        if (this._disposed) {
-            throw new Error('Client has already been disposed.');
-        }
-        let parsedUrl = url.parse(requestUrl);
-        let info = this._prepareRequest(verb, parsedUrl, headers);
-        // Only perform retries on reads since writes may not be idempotent.
-        let maxTries = this._allowRetries && RetryableHttpVerbs.indexOf(verb) != -1
-            ? this._maxRetries + 1
-            : 1;
-        let numTries = 0;
-        let response;
-        while (numTries < maxTries) {
-            response = await this.requestRaw(info, data);
-            // Check if it's an authentication challenge
-            if (response &&
-                response.message &&
-                response.message.statusCode === HttpCodes.Unauthorized) {
-                let authenticationHandler;
-                for (let i = 0; i < this.handlers.length; i++) {
-                    if (this.handlers[i].canHandleAuthentication(response)) {
-                        authenticationHandler = this.handlers[i];
-                        break;
-                    }
-                }
-                if (authenticationHandler) {
-                    return authenticationHandler.handleAuthentication(this, info, data);
-                }
-                else {
-                    // We have received an unauthorized response but have no handlers to handle it.
-                    // Let the response return to the caller.
-                    return response;
+                if (isUnixExecutable(stats)) {
+                    return filePath;
                 }
             }
-            let redirectsRemaining = this._maxRedirects;
-            while (HttpRedirectCodes.indexOf(response.message.statusCode) != -1 &&
-                this._allowRedirects &&
-                redirectsRemaining > 0) {
-                const redirectUrl = response.message.headers['location'];
-                if (!redirectUrl) {
-                    // if there's no location to redirect to, we won't
-                    break;
-                }
-                let parsedRedirectUrl = url.parse(redirectUrl);
-                if (parsedUrl.protocol == 'https:' &&
-                    parsedUrl.protocol != parsedRedirectUrl.protocol &&
-                    !this._allowRedirectDowngrade) {
-                    throw new Error('Redirect from HTTPS to HTTP protocol. This downgrade is not allowed for security reasons. If you want to allow this behavior, set the allowRedirectDowngrade option to true.');
-                }
-                // we need to finish reading the response before reassigning response
-                // which will leak the open socket.
-                await response.readBody();
-                // strip authorization header if redirected to a different hostname
-                if (parsedRedirectUrl.hostname !== parsedUrl.hostname) {
-                    for (let header in headers) {
-                        // header names are case insensitive
-                        if (header.toLowerCase() === 'authorization') {
-                            delete headers[header];
-                        }
-                    }
-                }
-                // let's make the request with the new redirectUrl
-                info = this._prepareRequest(verb, parsedRedirectUrl, headers);
-                response = await this.requestRaw(info, data);
-                redirectsRemaining--;
-            }
-            if (HttpResponseRetryCodes.indexOf(response.message.statusCode) == -1) {
-                // If not a retry code, return immediately instead of retrying
-                return response;
-            }
-            numTries += 1;
-            if (numTries < maxTries) {
-                await response.readBody();
-                await this._performExponentialBackoff(numTries);
-            }
         }
-        return response;
-    }
-    /**
-     * Needs to be called if keepAlive is set to true in request options.
-     */
-    dispose() {
-        if (this._agent) {
-            this._agent.destroy();
-        }
-        this._disposed = true;
-    }
-    /**
-     * Raw request.
-     * @param info
-     * @param data
-     */
-    requestRaw(info, data) {
-        return new Promise((resolve, reject) => {
-            let callbackForResult = function (err, res) {
-                if (err) {
-                    reject(err);
-                }
-                resolve(res);
-            };
-            this.requestRawWithCallback(info, data, callbackForResult);
-        });
-    }
-    /**
-     * Raw request with callback.
-     * @param info
-     * @param data
-     * @param onResult
-     */
-    requestRawWithCallback(info, data, onResult) {
-        let socket;
-        if (typeof data === 'string') {
-            info.options.headers['Content-Length'] = Buffer.byteLength(data, 'utf8');
-        }
-        let callbackCalled = false;
-        let handleResult = (err, res) => {
-            if (!callbackCalled) {
-                callbackCalled = true;
-                onResult(err, res);
-            }
-        };
-        let req = info.httpModule.request(info.options, (msg) => {
-            let res = new HttpClientResponse(msg);
-            handleResult(null, res);
-        });
-        req.on('socket', sock => {
-            socket = sock;
-        });
-        // If we ever get disconnected, we want the socket to timeout eventually
-        req.setTimeout(this._socketTimeout || 3 * 60000, () => {
-            if (socket) {
-                socket.end();
-            }
-            handleResult(new Error('Request timeout: ' + info.options.path), null);
-        });
-        req.on('error', function (err) {
-            // err has statusCode property
-            // res should have headers
-            handleResult(err, null);
-        });
-        if (data && typeof data === 'string') {
-            req.write(data, 'utf8');
-        }
-        if (data && typeof data !== 'string') {
-            data.on('close', function () {
-                req.end();
-            });
-            data.pipe(req);
-        }
-        else {
-            req.end();
-        }
-    }
-    /**
-     * Gets an http agent. This function is useful when you need an http agent that handles
-     * routing through a proxy server - depending upon the url and proxy environment variables.
-     * @param serverUrl  The server URL where the request will be sent. For example, https://api.github.com
-     */
-    getAgent(serverUrl) {
-        let parsedUrl = url.parse(serverUrl);
-        return this._getAgent(parsedUrl);
-    }
-    _prepareRequest(method, requestUrl, headers) {
-        const info = {};
-        info.parsedUrl = requestUrl;
-        const usingSsl = info.parsedUrl.protocol === 'https:';
-        info.httpModule = usingSsl ? https : http;
-        const defaultPort = usingSsl ? 443 : 80;
-        info.options = {};
-        info.options.host = info.parsedUrl.hostname;
-        info.options.port = info.parsedUrl.port
-            ? parseInt(info.parsedUrl.port)
-            : defaultPort;
-        info.options.path =
-            (info.parsedUrl.pathname || '') + (info.parsedUrl.search || '');
-        info.options.method = method;
-        info.options.headers = this._mergeHeaders(headers);
-        if (this.userAgent != null) {
-            info.options.headers['user-agent'] = this.userAgent;
-        }
-        info.options.agent = this._getAgent(info.parsedUrl);
-        // gives handlers an opportunity to participate
-        if (this.handlers) {
-            this.handlers.forEach(handler => {
-                handler.prepareRequest(info.options);
-            });
-        }
-        return info;
-    }
-    _mergeHeaders(headers) {
-        const lowercaseKeys = obj => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
-        if (this.requestOptions && this.requestOptions.headers) {
-            return Object.assign({}, lowercaseKeys(this.requestOptions.headers), lowercaseKeys(headers));
-        }
-        return lowercaseKeys(headers || {});
-    }
-    _getExistingOrDefaultHeader(additionalHeaders, header, _default) {
-        const lowercaseKeys = obj => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
-        let clientHeader;
-        if (this.requestOptions && this.requestOptions.headers) {
-            clientHeader = lowercaseKeys(this.requestOptions.headers)[header];
-        }
-        return additionalHeaders[header] || clientHeader || _default;
-    }
-    _getAgent(parsedUrl) {
-        let agent;
-        let proxyUrl = pm.getProxyUrl(parsedUrl);
-        let useProxy = proxyUrl && proxyUrl.hostname;
-        if (this._keepAlive && useProxy) {
-            agent = this._proxyAgent;
-        }
-        if (this._keepAlive && !useProxy) {
-            agent = this._agent;
-        }
-        // if agent is already assigned use that agent.
-        if (!!agent) {
-            return agent;
-        }
-        const usingSsl = parsedUrl.protocol === 'https:';
-        let maxSockets = 100;
-        if (!!this.requestOptions) {
-            maxSockets = this.requestOptions.maxSockets || http.globalAgent.maxSockets;
-        }
-        if (useProxy) {
-            // If using proxy, need tunnel
-            if (!tunnel) {
-                tunnel = __nccwpck_require__(770);
-            }
-            const agentOptions = {
-                maxSockets: maxSockets,
-                keepAlive: this._keepAlive,
-                proxy: {
-                    proxyAuth: proxyUrl.auth,
-                    host: proxyUrl.hostname,
-                    port: proxyUrl.port
-                }
-            };
-            let tunnelAgent;
-            const overHttps = proxyUrl.protocol === 'https:';
-            if (usingSsl) {
-                tunnelAgent = overHttps ? tunnel.httpsOverHttps : tunnel.httpsOverHttp;
-            }
-            else {
-                tunnelAgent = overHttps ? tunnel.httpOverHttps : tunnel.httpOverHttp;
-            }
-            agent = tunnelAgent(agentOptions);
-            this._proxyAgent = agent;
-        }
-        // if reusing agent across request and tunneling agent isn't assigned create a new agent
-        if (this._keepAlive && !agent) {
-            const options = { keepAlive: this._keepAlive, maxSockets: maxSockets };
-            agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
-            this._agent = agent;
-        }
-        // if not using private agent and tunnel agent isn't setup then use global agent
-        if (!agent) {
-            agent = usingSsl ? https.globalAgent : http.globalAgent;
-        }
-        if (usingSsl && this._ignoreSslError) {
-            // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
-            // http.RequestOptions doesn't expose a way to modify RequestOptions.agent.options
-            // we have to cast it to any and change it directly
-            agent.options = Object.assign(agent.options || {}, {
-                rejectUnauthorized: false
-            });
-        }
-        return agent;
-    }
-    _performExponentialBackoff(retryNumber) {
-        retryNumber = Math.min(ExponentialBackoffCeiling, retryNumber);
-        const ms = ExponentialBackoffTimeSlice * Math.pow(2, retryNumber);
-        return new Promise(resolve => setTimeout(() => resolve(), ms));
-    }
-    static dateTimeDeserializer(key, value) {
-        if (typeof value === 'string') {
-            let a = new Date(value);
-            if (!isNaN(a.valueOf())) {
-                return a;
-            }
-        }
-        return value;
-    }
-    async _processResponse(res, options) {
-        return new Promise(async (resolve, reject) => {
-            const statusCode = res.message.statusCode;
-            const response = {
-                statusCode: statusCode,
-                result: null,
-                headers: {}
-            };
-            // not found leads to null obj returned
-            if (statusCode == HttpCodes.NotFound) {
-                resolve(response);
-            }
-            let obj;
-            let contents;
-            // get the result from the body
+        // try each extension
+        const originalFilePath = filePath;
+        for (const extension of extensions) {
+            filePath = originalFilePath + extension;
+            stats = undefined;
             try {
-                contents = await res.readBody();
-                if (contents && contents.length > 0) {
-                    if (options && options.deserializeDates) {
-                        obj = JSON.parse(contents, HttpClient.dateTimeDeserializer);
-                    }
-                    else {
-                        obj = JSON.parse(contents);
-                    }
-                    response.result = obj;
-                }
-                response.headers = res.message.headers;
+                stats = yield exports.stat(filePath);
             }
             catch (err) {
-                // Invalid resource (contents not json);  leaving result obj null
-            }
-            // note that 3xx redirects are handled by the http layer.
-            if (statusCode > 299) {
-                let msg;
-                // if exception/error in body, attempt to get better error
-                if (obj && obj.message) {
-                    msg = obj.message;
+                if (err.code !== 'ENOENT') {
+                    // eslint-disable-next-line no-console
+                    console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
                 }
-                else if (contents && contents.length > 0) {
-                    // it may be the case that the exception is in the body message as string
-                    msg = contents;
+            }
+            if (stats && stats.isFile()) {
+                if (exports.IS_WINDOWS) {
+                    // preserve the case of the actual file (since an extension was appended)
+                    try {
+                        const directory = path.dirname(filePath);
+                        const upperName = path.basename(filePath).toUpperCase();
+                        for (const actualName of yield exports.readdir(directory)) {
+                            if (upperName === actualName.toUpperCase()) {
+                                filePath = path.join(directory, actualName);
+                                break;
+                            }
+                        }
+                    }
+                    catch (err) {
+                        // eslint-disable-next-line no-console
+                        console.log(`Unexpected error attempting to determine the actual case of the file '${filePath}': ${err}`);
+                    }
+                    return filePath;
                 }
                 else {
-                    msg = 'Failed request: (' + statusCode + ')';
+                    if (isUnixExecutable(stats)) {
+                        return filePath;
+                    }
                 }
-                let err = new Error(msg);
-                // attach statusCode and body obj (if available) to the error object
-                err['statusCode'] = statusCode;
-                if (response.result) {
-                    err['result'] = response.result;
-                }
-                reject(err);
             }
-            else {
-                resolve(response);
-            }
-        });
-    }
+        }
+        return '';
+    });
 }
-exports.HttpClient = HttpClient;
-
+exports.tryGetExecutablePath = tryGetExecutablePath;
+function normalizeSeparators(p) {
+    p = p || '';
+    if (exports.IS_WINDOWS) {
+        // convert slashes on Windows
+        p = p.replace(/\//g, '\\');
+        // remove redundant slashes
+        return p.replace(/\\\\+/g, '\\');
+    }
+    // remove redundant slashes
+    return p.replace(/\/\/+/g, '/');
+}
+// on Mac/Linux, test the execute bit
+//     R   W  X  R  W X R W X
+//   256 128 64 32 16 8 4 2 1
+function isUnixExecutable(stats) {
+    return ((stats.mode & 1) > 0 ||
+        ((stats.mode & 8) > 0 && stats.gid === process.getgid()) ||
+        ((stats.mode & 64) > 0 && stats.uid === process.getuid()));
+}
+// Get the path of cmd.exe in windows
+function getCmdPath() {
+    var _a;
+    return (_a = process.env['COMSPEC']) !== null && _a !== void 0 ? _a : `cmd.exe`;
+}
+exports.getCmdPath = getCmdPath;
+//# sourceMappingURL=io-util.js.map
 
 /***/ }),
 
-/***/ 624:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ 4994:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const url = __nccwpck_require__(7016);
-function getProxyUrl(reqUrl) {
-    let usingSsl = reqUrl.protocol === 'https:';
-    let proxyUrl;
-    if (checkBypass(reqUrl)) {
-        return proxyUrl;
-    }
-    let proxyVar;
-    if (usingSsl) {
-        proxyVar = process.env['https_proxy'] || process.env['HTTPS_PROXY'];
-    }
-    else {
-        proxyVar = process.env['http_proxy'] || process.env['HTTP_PROXY'];
-    }
-    if (proxyVar) {
-        proxyUrl = url.parse(proxyVar);
-    }
-    return proxyUrl;
-}
-exports.getProxyUrl = getProxyUrl;
-function checkBypass(reqUrl) {
-    if (!reqUrl.hostname) {
-        return false;
-    }
-    let noProxy = process.env['no_proxy'] || process.env['NO_PROXY'] || '';
-    if (!noProxy) {
-        return false;
-    }
-    // Determine the request port
-    let reqPort;
-    if (reqUrl.port) {
-        reqPort = Number(reqUrl.port);
-    }
-    else if (reqUrl.protocol === 'http:') {
-        reqPort = 80;
-    }
-    else if (reqUrl.protocol === 'https:') {
-        reqPort = 443;
-    }
-    // Format the request hostname and hostname with port
-    let upperReqHosts = [reqUrl.hostname.toUpperCase()];
-    if (typeof reqPort === 'number') {
-        upperReqHosts.push(`${upperReqHosts[0]}:${reqPort}`);
-    }
-    // Compare request host against noproxy
-    for (let upperNoProxyItem of noProxy
-        .split(',')
-        .map(x => x.trim().toUpperCase())
-        .filter(x => x)) {
-        if (upperReqHosts.some(x => x === upperNoProxyItem)) {
-            return true;
+exports.findInPath = exports.which = exports.mkdirP = exports.rmRF = exports.mv = exports.cp = void 0;
+const assert_1 = __nccwpck_require__(2613);
+const path = __importStar(__nccwpck_require__(6928));
+const ioUtil = __importStar(__nccwpck_require__(5207));
+/**
+ * Copies a file or folder.
+ * Based off of shelljs - https://github.com/shelljs/shelljs/blob/9237f66c52e5daa40458f94f9565e18e8132f5a6/src/cp.js
+ *
+ * @param     source    source path
+ * @param     dest      destination path
+ * @param     options   optional. See CopyOptions.
+ */
+function cp(source, dest, options = {}) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { force, recursive, copySourceDirectory } = readCopyOptions(options);
+        const destStat = (yield ioUtil.exists(dest)) ? yield ioUtil.stat(dest) : null;
+        // Dest is an existing file, but not forcing
+        if (destStat && destStat.isFile() && !force) {
+            return;
         }
-    }
-    return false;
+        // If dest is an existing directory, should copy inside.
+        const newDest = destStat && destStat.isDirectory() && copySourceDirectory
+            ? path.join(dest, path.basename(source))
+            : dest;
+        if (!(yield ioUtil.exists(source))) {
+            throw new Error(`no such file or directory: ${source}`);
+        }
+        const sourceStat = yield ioUtil.stat(source);
+        if (sourceStat.isDirectory()) {
+            if (!recursive) {
+                throw new Error(`Failed to copy. ${source} is a directory, but tried to copy without recursive flag.`);
+            }
+            else {
+                yield cpDirRecursive(source, newDest, 0, force);
+            }
+        }
+        else {
+            if (path.relative(source, newDest) === '') {
+                // a file cannot be copied to itself
+                throw new Error(`'${newDest}' and '${source}' are the same file`);
+            }
+            yield copyFile(source, newDest, force);
+        }
+    });
 }
-exports.checkBypass = checkBypass;
-
+exports.cp = cp;
+/**
+ * Moves a path.
+ *
+ * @param     source    source path
+ * @param     dest      destination path
+ * @param     options   optional. See MoveOptions.
+ */
+function mv(source, dest, options = {}) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (yield ioUtil.exists(dest)) {
+            let destExists = true;
+            if (yield ioUtil.isDirectory(dest)) {
+                // If dest is directory copy src into dest
+                dest = path.join(dest, path.basename(source));
+                destExists = yield ioUtil.exists(dest);
+            }
+            if (destExists) {
+                if (options.force == null || options.force) {
+                    yield rmRF(dest);
+                }
+                else {
+                    throw new Error('Destination already exists');
+                }
+            }
+        }
+        yield mkdirP(path.dirname(dest));
+        yield ioUtil.rename(source, dest);
+    });
+}
+exports.mv = mv;
+/**
+ * Remove a path recursively with force
+ *
+ * @param inputPath path to remove
+ */
+function rmRF(inputPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (ioUtil.IS_WINDOWS) {
+            // Check for invalid characters
+            // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+            if (/[*"<>|]/.test(inputPath)) {
+                throw new Error('File path must not contain `*`, `"`, `<`, `>` or `|` on Windows');
+            }
+        }
+        try {
+            // note if path does not exist, error is silent
+            yield ioUtil.rm(inputPath, {
+                force: true,
+                maxRetries: 3,
+                recursive: true,
+                retryDelay: 300
+            });
+        }
+        catch (err) {
+            throw new Error(`File was unable to be removed ${err}`);
+        }
+    });
+}
+exports.rmRF = rmRF;
+/**
+ * Make a directory.  Creates the full path with folders in between
+ * Will throw if it fails
+ *
+ * @param   fsPath        path to create
+ * @returns Promise<void>
+ */
+function mkdirP(fsPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        assert_1.ok(fsPath, 'a path argument must be provided');
+        yield ioUtil.mkdir(fsPath, { recursive: true });
+    });
+}
+exports.mkdirP = mkdirP;
+/**
+ * Returns path of a tool had the tool actually been invoked.  Resolves via paths.
+ * If you check and the tool does not exist, it will throw.
+ *
+ * @param     tool              name of the tool
+ * @param     check             whether to check if tool exists
+ * @returns   Promise<string>   path to tool
+ */
+function which(tool, check) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!tool) {
+            throw new Error("parameter 'tool' is required");
+        }
+        // recursive when check=true
+        if (check) {
+            const result = yield which(tool, false);
+            if (!result) {
+                if (ioUtil.IS_WINDOWS) {
+                    throw new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also verify the file has a valid extension for an executable file.`);
+                }
+                else {
+                    throw new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also check the file mode to verify the file is executable.`);
+                }
+            }
+            return result;
+        }
+        const matches = yield findInPath(tool);
+        if (matches && matches.length > 0) {
+            return matches[0];
+        }
+        return '';
+    });
+}
+exports.which = which;
+/**
+ * Returns a list of all occurrences of the given tool on the system path.
+ *
+ * @returns   Promise<string[]>  the paths of the tool
+ */
+function findInPath(tool) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!tool) {
+            throw new Error("parameter 'tool' is required");
+        }
+        // build the list of extensions to try
+        const extensions = [];
+        if (ioUtil.IS_WINDOWS && process.env['PATHEXT']) {
+            for (const extension of process.env['PATHEXT'].split(path.delimiter)) {
+                if (extension) {
+                    extensions.push(extension);
+                }
+            }
+        }
+        // if it's rooted, return it if exists. otherwise return empty.
+        if (ioUtil.isRooted(tool)) {
+            const filePath = yield ioUtil.tryGetExecutablePath(tool, extensions);
+            if (filePath) {
+                return [filePath];
+            }
+            return [];
+        }
+        // if any path separators, return empty
+        if (tool.includes(path.sep)) {
+            return [];
+        }
+        // build the list of directories
+        //
+        // Note, technically "where" checks the current directory on Windows. From a toolkit perspective,
+        // it feels like we should not do this. Checking the current directory seems like more of a use
+        // case of a shell, and the which() function exposed by the toolkit should strive for consistency
+        // across platforms.
+        const directories = [];
+        if (process.env.PATH) {
+            for (const p of process.env.PATH.split(path.delimiter)) {
+                if (p) {
+                    directories.push(p);
+                }
+            }
+        }
+        // find all matches
+        const matches = [];
+        for (const directory of directories) {
+            const filePath = yield ioUtil.tryGetExecutablePath(path.join(directory, tool), extensions);
+            if (filePath) {
+                matches.push(filePath);
+            }
+        }
+        return matches;
+    });
+}
+exports.findInPath = findInPath;
+function readCopyOptions(options) {
+    const force = options.force == null ? true : options.force;
+    const recursive = Boolean(options.recursive);
+    const copySourceDirectory = options.copySourceDirectory == null
+        ? true
+        : Boolean(options.copySourceDirectory);
+    return { force, recursive, copySourceDirectory };
+}
+function cpDirRecursive(sourceDir, destDir, currentDepth, force) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // Ensure there is not a run away recursive copy
+        if (currentDepth >= 255)
+            return;
+        currentDepth++;
+        yield mkdirP(destDir);
+        const files = yield ioUtil.readdir(sourceDir);
+        for (const fileName of files) {
+            const srcFile = `${sourceDir}/${fileName}`;
+            const destFile = `${destDir}/${fileName}`;
+            const srcFileStat = yield ioUtil.lstat(srcFile);
+            if (srcFileStat.isDirectory()) {
+                // Recurse
+                yield cpDirRecursive(srcFile, destFile, currentDepth, force);
+            }
+            else {
+                yield copyFile(srcFile, destFile, force);
+            }
+        }
+        // Change the mode for the newly created directory
+        yield ioUtil.chmod(destDir, (yield ioUtil.stat(sourceDir)).mode);
+    });
+}
+// Buffered file copy
+function copyFile(srcFile, destFile, force) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if ((yield ioUtil.lstat(srcFile)).isSymbolicLink()) {
+            // unlink/re-link it
+            try {
+                yield ioUtil.lstat(destFile);
+                yield ioUtil.unlink(destFile);
+            }
+            catch (e) {
+                // Try to override file permission
+                if (e.code === 'EPERM') {
+                    yield ioUtil.chmod(destFile, '0666');
+                    yield ioUtil.unlink(destFile);
+                }
+                // other errors = it doesn't exist, no work to do
+            }
+            // Copy over symlink
+            const symlinkFull = yield ioUtil.readlink(srcFile);
+            yield ioUtil.symlink(symlinkFull, destFile, ioUtil.IS_WINDOWS ? 'junction' : null);
+        }
+        else if (!(yield ioUtil.exists(destFile)) || force) {
+            yield ioUtil.copyFile(srcFile, destFile);
+        }
+    });
+}
+//# sourceMappingURL=io.js.map
 
 /***/ }),
 
@@ -2643,8 +4024,14 @@ exports.checkBypass = checkBypass;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
+const REGEX_IS_INSTALLATION_LEGACY = /^v1\./;
+const REGEX_IS_INSTALLATION = /^ghs_/;
+const REGEX_IS_USER_TO_SERVER = /^ghu_/;
 async function auth(token) {
-  const tokenType = token.split(/\./).length === 3 ? "app" : /^v\d+\./.test(token) ? "installation" : "oauth";
+  const isApp = token.split(/\./).length === 3;
+  const isInstallation = REGEX_IS_INSTALLATION_LEGACY.test(token) || REGEX_IS_INSTALLATION.test(token);
+  const isUserToServer = REGEX_IS_USER_TO_SERVER.test(token);
+  const tokenType = isApp ? "app" : isInstallation ? "installation" : isUserToServer ? "user-to-server" : "oauth";
   return {
     type: "token",
     token: token,
@@ -2706,57 +4093,45 @@ var request = __nccwpck_require__(8636);
 var graphql = __nccwpck_require__(7);
 var authToken = __nccwpck_require__(7864);
 
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
+function _objectWithoutPropertiesLoose(source, excluded) {
+  if (source == null) return {};
+  var target = {};
+  var sourceKeys = Object.keys(source);
+  var key, i;
+
+  for (i = 0; i < sourceKeys.length; i++) {
+    key = sourceKeys[i];
+    if (excluded.indexOf(key) >= 0) continue;
+    target[key] = source[key];
   }
 
-  return obj;
+  return target;
 }
 
-function ownKeys(object, enumerableOnly) {
-  var keys = Object.keys(object);
+function _objectWithoutProperties(source, excluded) {
+  if (source == null) return {};
+
+  var target = _objectWithoutPropertiesLoose(source, excluded);
+
+  var key, i;
 
   if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter(function (sym) {
-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-    });
-    keys.push.apply(keys, symbols);
-  }
+    var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
 
-  return keys;
-}
-
-function _objectSpread2(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {};
-
-    if (i % 2) {
-      ownKeys(Object(source), true).forEach(function (key) {
-        _defineProperty(target, key, source[key]);
-      });
-    } else if (Object.getOwnPropertyDescriptors) {
-      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-      ownKeys(Object(source)).forEach(function (key) {
-        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-      });
+    for (i = 0; i < sourceSymbolKeys.length; i++) {
+      key = sourceSymbolKeys[i];
+      if (excluded.indexOf(key) >= 0) continue;
+      if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+      target[key] = source[key];
     }
   }
 
   return target;
 }
 
-const VERSION = "3.1.2";
+const VERSION = "3.6.0";
 
+const _excluded = ["authStrategy"];
 class Octokit {
   constructor(options = {}) {
     const hook = new beforeAfterHook.Collection();
@@ -2764,6 +4139,7 @@ class Octokit {
       baseUrl: request.request.endpoint.DEFAULTS.baseUrl,
       headers: {},
       request: Object.assign({}, options.request, {
+        // @ts-ignore internal usage only, no need to type
         hook: hook.bind(null, "request")
       }),
       mediaType: {
@@ -2787,9 +4163,7 @@ class Octokit {
     }
 
     this.request = request.request.defaults(requestDefaults);
-    this.graphql = graphql.withCustomRequest(this.request).defaults(_objectSpread2(_objectSpread2({}, requestDefaults), {}, {
-      baseUrl: requestDefaults.baseUrl.replace(/\/api\/v3$/, "/api")
-    }));
+    this.graphql = graphql.withCustomRequest(this.request).defaults(requestDefaults);
     this.log = Object.assign({
       debug: () => {},
       info: () => {},
@@ -2797,7 +4171,7 @@ class Octokit {
       error: console.error.bind(console)
     }, options.log);
     this.hook = hook; // (1) If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
-    //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registred.
+    //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registered.
     // (2) If only `options.auth` is set, use the default token authentication strategy.
     // (3) If `options.authStrategy` is set then use it and pass in `options.auth`. Always pass own request as many strategies accept a custom request instance.
     // TODO: type `options.auth` based on `options.authStrategy`.
@@ -2816,8 +4190,21 @@ class Octokit {
         this.auth = auth;
       }
     } else {
-      const auth = options.authStrategy(Object.assign({
-        request: this.request
+      const {
+        authStrategy
+      } = options,
+            otherOptions = _objectWithoutProperties(options, _excluded);
+
+      const auth = authStrategy(Object.assign({
+        request: this.request,
+        log: this.log,
+        // we pass the current octokit instance as well as its constructor options
+        // to allow for authentication strategies that return a new octokit instance
+        // that shares the same internal state as the current one. The original
+        // requirement for this was the "event-octokit" authentication strategy
+        // of https://github.com/probot/octokit-auth-probot.
+        octokit: this,
+        octokitOptions: otherOptions
       }, options.auth)); // @ts-ignore  ¯\_(ツ)_/¯
 
       hook.wrap("request", auth.hook);
@@ -2884,9 +4271,7 @@ exports.Octokit = Octokit;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var isPlainObject = _interopDefault(__nccwpck_require__(9139));
+var isPlainObject = __nccwpck_require__(3407);
 var universalUserAgent = __nccwpck_require__(3843);
 
 function lowercaseKeys(object) {
@@ -2903,7 +4288,7 @@ function lowercaseKeys(object) {
 function mergeDeep(defaults, options) {
   const result = Object.assign({}, defaults);
   Object.keys(options).forEach(key => {
-    if (isPlainObject(options[key])) {
+    if (isPlainObject.isPlainObject(options[key])) {
       if (!(key in defaults)) Object.assign(result, {
         [key]: options[key]
       });else result[key] = mergeDeep(defaults[key], options[key]);
@@ -2914,6 +4299,16 @@ function mergeDeep(defaults, options) {
     }
   });
   return result;
+}
+
+function removeUndefinedProperties(obj) {
+  for (const key in obj) {
+    if (obj[key] === undefined) {
+      delete obj[key];
+    }
+  }
+
+  return obj;
 }
 
 function merge(defaults, route, options) {
@@ -2930,7 +4325,10 @@ function merge(defaults, route, options) {
   } // lowercase header names before merging with defaults to avoid duplicates
 
 
-  options.headers = lowercaseKeys(options.headers);
+  options.headers = lowercaseKeys(options.headers); // remove properties with undefined values before merging
+
+  removeUndefinedProperties(options);
+  removeUndefinedProperties(options.headers);
   const mergedOptions = mergeDeep(defaults || {}, options); // mediaType.previews arrays are merged, instead of overwritten
 
   if (defaults && defaults.mediaType.previews.length) {
@@ -3152,7 +4550,7 @@ function parse(options) {
   // https://fetch.spec.whatwg.org/#methods
   let method = options.method.toUpperCase(); // replace :varname with {varname} to make it RFC 6570 compatible
 
-  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{+$1}");
+  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
   let headers = Object.assign({}, options.headers);
   let body;
   let parameters = omit(options, ["method", "baseUrl", "url", "headers", "request", "mediaType"]); // extract variable names from URL to calculate remaining variables later
@@ -3166,9 +4564,9 @@ function parse(options) {
 
   const omittedParameters = Object.keys(options).filter(option => urlVariableNames.includes(option)).concat("baseUrl");
   const remainingParameters = omit(parameters, omittedParameters);
-  const isBinaryRequset = /application\/octet-stream/i.test(headers.accept);
+  const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
 
-  if (!isBinaryRequset) {
+  if (!isBinaryRequest) {
     if (options.mediaType.format) {
       // e.g. application/vnd.github.v3+json => application/vnd.github.v3.raw
       headers.accept = headers.accept.split(/,/).map(preview => preview.replace(/application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/, `application/vnd$1$2.${options.mediaType.format}`)).join(",");
@@ -3237,7 +4635,7 @@ function withDefaults(oldDefaults, newDefaults) {
   });
 }
 
-const VERSION = "6.0.5";
+const VERSION = "6.0.12";
 
 const userAgent = `octokit-endpoint.js/${VERSION} ${universalUserAgent.getUserAgent()}`; // DEFAULTS has all properties set that EndpointOptions has, except url.
 // So we use RequestParameters and add method as additional required property.
@@ -3274,18 +4672,22 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 var request = __nccwpck_require__(8636);
 var universalUserAgent = __nccwpck_require__(3843);
 
-const VERSION = "4.5.4";
+const VERSION = "4.8.0";
 
-class GraphqlError extends Error {
-  constructor(request, response) {
-    const message = response.data.errors[0].message;
-    super(message);
-    Object.assign(this, response.data);
-    Object.assign(this, {
-      headers: response.headers
-    });
-    this.name = "GraphqlError";
-    this.request = request; // Maintains proper stack trace (only available on V8)
+function _buildMessageForResponseErrors(data) {
+  return `Request failed due to following response errors:\n` + data.errors.map(e => ` - ${e.message}`).join("\n");
+}
+
+class GraphqlResponseError extends Error {
+  constructor(request, headers, response) {
+    super(_buildMessageForResponseErrors(response));
+    this.request = request;
+    this.headers = headers;
+    this.response = response;
+    this.name = "GraphqlResponseError"; // Expose the errors and response data in their shorthand properties.
+
+    this.errors = response.errors;
+    this.data = response.data; // Maintains proper stack trace (only available on V8)
 
     /* istanbul ignore next */
 
@@ -3297,13 +4699,26 @@ class GraphqlError extends Error {
 }
 
 const NON_VARIABLE_OPTIONS = ["method", "baseUrl", "url", "headers", "request", "query", "mediaType"];
+const FORBIDDEN_VARIABLE_OPTIONS = ["query", "method", "url"];
+const GHES_V3_SUFFIX_REGEX = /\/api\/v3\/?$/;
 function graphql(request, query, options) {
-  options = typeof query === "string" ? options = Object.assign({
+  if (options) {
+    if (typeof query === "string" && "query" in options) {
+      return Promise.reject(new Error(`[@octokit/graphql] "query" cannot be used as variable name`));
+    }
+
+    for (const key in options) {
+      if (!FORBIDDEN_VARIABLE_OPTIONS.includes(key)) continue;
+      return Promise.reject(new Error(`[@octokit/graphql] "${key}" cannot be used as variable name`));
+    }
+  }
+
+  const parsedOptions = typeof query === "string" ? Object.assign({
     query
-  }, options) : options = query;
-  const requestOptions = Object.keys(options).reduce((result, key) => {
+  }, options) : query;
+  const requestOptions = Object.keys(parsedOptions).reduce((result, key) => {
     if (NON_VARIABLE_OPTIONS.includes(key)) {
-      result[key] = options[key];
+      result[key] = parsedOptions[key];
       return result;
     }
 
@@ -3311,9 +4726,17 @@ function graphql(request, query, options) {
       result.variables = {};
     }
 
-    result.variables[key] = options[key];
+    result.variables[key] = parsedOptions[key];
     return result;
-  }, {});
+  }, {}); // workaround for GitHub Enterprise baseUrl set with /api/v3 suffix
+  // https://github.com/octokit/auth-app.js/issues/111#issuecomment-657610451
+
+  const baseUrl = parsedOptions.baseUrl || request.endpoint.DEFAULTS.baseUrl;
+
+  if (GHES_V3_SUFFIX_REGEX.test(baseUrl)) {
+    requestOptions.url = baseUrl.replace(GHES_V3_SUFFIX_REGEX, "/api/graphql");
+  }
+
   return request(requestOptions).then(response => {
     if (response.data.errors) {
       const headers = {};
@@ -3322,10 +4745,7 @@ function graphql(request, query, options) {
         headers[key] = response.headers[key];
       }
 
-      throw new GraphqlError(requestOptions, {
-        headers,
-        data: response.data
-      });
+      throw new GraphqlResponseError(requestOptions, headers, response.data);
     }
 
     return response.data.data;
@@ -3359,6 +4779,7 @@ function withCustomRequest(customRequest) {
   });
 }
 
+exports.GraphqlResponseError = GraphqlResponseError;
 exports.graphql = graphql$1;
 exports.withCustomRequest = withCustomRequest;
 //# sourceMappingURL=index.js.map
@@ -3374,7 +4795,48 @@ exports.withCustomRequest = withCustomRequest;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-const VERSION = "2.3.0";
+const VERSION = "2.21.3";
+
+function ownKeys(object, enumerableOnly) {
+  var keys = Object.keys(object);
+
+  if (Object.getOwnPropertySymbols) {
+    var symbols = Object.getOwnPropertySymbols(object);
+    enumerableOnly && (symbols = symbols.filter(function (sym) {
+      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+    })), keys.push.apply(keys, symbols);
+  }
+
+  return keys;
+}
+
+function _objectSpread2(target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = null != arguments[i] ? arguments[i] : {};
+    i % 2 ? ownKeys(Object(source), !0).forEach(function (key) {
+      _defineProperty(target, key, source[key]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) {
+      Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+    });
+  }
+
+  return target;
+}
+
+function _defineProperty(obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+}
 
 /**
  * Some “list” response that can be paginated have a different response structure
@@ -3393,6 +4855,13 @@ const VERSION = "2.3.0";
  * otherwise match: https://developer.github.com/v3/repos/statuses/#get-the-combined-status-for-a-specific-ref
  */
 function normalizePaginatedListResponse(response) {
+  // endpoints can respond with 204 if repository is empty
+  if (!response.data) {
+    return _objectSpread2(_objectSpread2({}, response), {}, {
+      data: []
+    });
+  }
+
   const responseNeedsNormalization = "total_count" in response.data && !("url" in response.data);
   if (!responseNeedsNormalization) return response; // keep the additional properties intact as there is currently no other way
   // to retrieve the same information.
@@ -3427,26 +4896,36 @@ function iterator(octokit, route, parameters) {
   let url = options.url;
   return {
     [Symbol.asyncIterator]: () => ({
-      next() {
-        if (!url) {
-          return Promise.resolve({
-            done: true
-          });
-        }
+      async next() {
+        if (!url) return {
+          done: true
+        };
 
-        return requestMethod({
-          method,
-          url,
-          headers
-        }).then(normalizePaginatedListResponse).then(response => {
-          // `response.headers.link` format:
+        try {
+          const response = await requestMethod({
+            method,
+            url,
+            headers
+          });
+          const normalizedResponse = normalizePaginatedListResponse(response); // `response.headers.link` format:
           // '<https://api.github.com/users/aseemk/followers?page=2>; rel="next", <https://api.github.com/users/aseemk/followers?page=2>; rel="last"'
           // sets `url` to undefined if "next" URL is not present or `link` header is not set
-          url = ((response.headers.link || "").match(/<([^>]+)>;\s*rel="next"/) || [])[1];
+
+          url = ((normalizedResponse.headers.link || "").match(/<([^>]+)>;\s*rel="next"/) || [])[1];
           return {
-            value: response
+            value: normalizedResponse
           };
-        });
+        } catch (error) {
+          if (error.status !== 409) throw error;
+          url = "";
+          return {
+            value: {
+              status: 200,
+              headers: {},
+              data: []
+            }
+          };
+        }
       }
 
     })
@@ -3484,6 +4963,20 @@ function gather(octokit, results, iterator, mapFn) {
   });
 }
 
+const composePaginateRest = Object.assign(paginate, {
+  iterator
+});
+
+const paginatingEndpoints = ["GET /app/hook/deliveries", "GET /app/installations", "GET /applications/grants", "GET /authorizations", "GET /enterprises/{enterprise}/actions/permissions/organizations", "GET /enterprises/{enterprise}/actions/runner-groups", "GET /enterprises/{enterprise}/actions/runner-groups/{runner_group_id}/organizations", "GET /enterprises/{enterprise}/actions/runner-groups/{runner_group_id}/runners", "GET /enterprises/{enterprise}/actions/runners", "GET /enterprises/{enterprise}/audit-log", "GET /enterprises/{enterprise}/secret-scanning/alerts", "GET /enterprises/{enterprise}/settings/billing/advanced-security", "GET /events", "GET /gists", "GET /gists/public", "GET /gists/starred", "GET /gists/{gist_id}/comments", "GET /gists/{gist_id}/commits", "GET /gists/{gist_id}/forks", "GET /installation/repositories", "GET /issues", "GET /licenses", "GET /marketplace_listing/plans", "GET /marketplace_listing/plans/{plan_id}/accounts", "GET /marketplace_listing/stubbed/plans", "GET /marketplace_listing/stubbed/plans/{plan_id}/accounts", "GET /networks/{owner}/{repo}/events", "GET /notifications", "GET /organizations", "GET /orgs/{org}/actions/cache/usage-by-repository", "GET /orgs/{org}/actions/permissions/repositories", "GET /orgs/{org}/actions/runner-groups", "GET /orgs/{org}/actions/runner-groups/{runner_group_id}/repositories", "GET /orgs/{org}/actions/runner-groups/{runner_group_id}/runners", "GET /orgs/{org}/actions/runners", "GET /orgs/{org}/actions/secrets", "GET /orgs/{org}/actions/secrets/{secret_name}/repositories", "GET /orgs/{org}/audit-log", "GET /orgs/{org}/blocks", "GET /orgs/{org}/code-scanning/alerts", "GET /orgs/{org}/codespaces", "GET /orgs/{org}/credential-authorizations", "GET /orgs/{org}/dependabot/secrets", "GET /orgs/{org}/dependabot/secrets/{secret_name}/repositories", "GET /orgs/{org}/events", "GET /orgs/{org}/external-groups", "GET /orgs/{org}/failed_invitations", "GET /orgs/{org}/hooks", "GET /orgs/{org}/hooks/{hook_id}/deliveries", "GET /orgs/{org}/installations", "GET /orgs/{org}/invitations", "GET /orgs/{org}/invitations/{invitation_id}/teams", "GET /orgs/{org}/issues", "GET /orgs/{org}/members", "GET /orgs/{org}/migrations", "GET /orgs/{org}/migrations/{migration_id}/repositories", "GET /orgs/{org}/outside_collaborators", "GET /orgs/{org}/packages", "GET /orgs/{org}/packages/{package_type}/{package_name}/versions", "GET /orgs/{org}/projects", "GET /orgs/{org}/public_members", "GET /orgs/{org}/repos", "GET /orgs/{org}/secret-scanning/alerts", "GET /orgs/{org}/settings/billing/advanced-security", "GET /orgs/{org}/team-sync/groups", "GET /orgs/{org}/teams", "GET /orgs/{org}/teams/{team_slug}/discussions", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions", "GET /orgs/{org}/teams/{team_slug}/invitations", "GET /orgs/{org}/teams/{team_slug}/members", "GET /orgs/{org}/teams/{team_slug}/projects", "GET /orgs/{org}/teams/{team_slug}/repos", "GET /orgs/{org}/teams/{team_slug}/teams", "GET /projects/columns/{column_id}/cards", "GET /projects/{project_id}/collaborators", "GET /projects/{project_id}/columns", "GET /repos/{owner}/{repo}/actions/artifacts", "GET /repos/{owner}/{repo}/actions/caches", "GET /repos/{owner}/{repo}/actions/runners", "GET /repos/{owner}/{repo}/actions/runs", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/jobs", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs", "GET /repos/{owner}/{repo}/actions/secrets", "GET /repos/{owner}/{repo}/actions/workflows", "GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs", "GET /repos/{owner}/{repo}/assignees", "GET /repos/{owner}/{repo}/branches", "GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations", "GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs", "GET /repos/{owner}/{repo}/code-scanning/alerts", "GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances", "GET /repos/{owner}/{repo}/code-scanning/analyses", "GET /repos/{owner}/{repo}/codespaces", "GET /repos/{owner}/{repo}/codespaces/devcontainers", "GET /repos/{owner}/{repo}/codespaces/secrets", "GET /repos/{owner}/{repo}/collaborators", "GET /repos/{owner}/{repo}/comments", "GET /repos/{owner}/{repo}/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/commits", "GET /repos/{owner}/{repo}/commits/{commit_sha}/comments", "GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls", "GET /repos/{owner}/{repo}/commits/{ref}/check-runs", "GET /repos/{owner}/{repo}/commits/{ref}/check-suites", "GET /repos/{owner}/{repo}/commits/{ref}/status", "GET /repos/{owner}/{repo}/commits/{ref}/statuses", "GET /repos/{owner}/{repo}/contributors", "GET /repos/{owner}/{repo}/dependabot/secrets", "GET /repos/{owner}/{repo}/deployments", "GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses", "GET /repos/{owner}/{repo}/environments", "GET /repos/{owner}/{repo}/events", "GET /repos/{owner}/{repo}/forks", "GET /repos/{owner}/{repo}/git/matching-refs/{ref}", "GET /repos/{owner}/{repo}/hooks", "GET /repos/{owner}/{repo}/hooks/{hook_id}/deliveries", "GET /repos/{owner}/{repo}/invitations", "GET /repos/{owner}/{repo}/issues", "GET /repos/{owner}/{repo}/issues/comments", "GET /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/issues/events", "GET /repos/{owner}/{repo}/issues/{issue_number}/comments", "GET /repos/{owner}/{repo}/issues/{issue_number}/events", "GET /repos/{owner}/{repo}/issues/{issue_number}/labels", "GET /repos/{owner}/{repo}/issues/{issue_number}/reactions", "GET /repos/{owner}/{repo}/issues/{issue_number}/timeline", "GET /repos/{owner}/{repo}/keys", "GET /repos/{owner}/{repo}/labels", "GET /repos/{owner}/{repo}/milestones", "GET /repos/{owner}/{repo}/milestones/{milestone_number}/labels", "GET /repos/{owner}/{repo}/notifications", "GET /repos/{owner}/{repo}/pages/builds", "GET /repos/{owner}/{repo}/projects", "GET /repos/{owner}/{repo}/pulls", "GET /repos/{owner}/{repo}/pulls/comments", "GET /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/pulls/{pull_number}/comments", "GET /repos/{owner}/{repo}/pulls/{pull_number}/commits", "GET /repos/{owner}/{repo}/pulls/{pull_number}/files", "GET /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews", "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/comments", "GET /repos/{owner}/{repo}/releases", "GET /repos/{owner}/{repo}/releases/{release_id}/assets", "GET /repos/{owner}/{repo}/releases/{release_id}/reactions", "GET /repos/{owner}/{repo}/secret-scanning/alerts", "GET /repos/{owner}/{repo}/secret-scanning/alerts/{alert_number}/locations", "GET /repos/{owner}/{repo}/stargazers", "GET /repos/{owner}/{repo}/subscribers", "GET /repos/{owner}/{repo}/tags", "GET /repos/{owner}/{repo}/teams", "GET /repos/{owner}/{repo}/topics", "GET /repositories", "GET /repositories/{repository_id}/environments/{environment_name}/secrets", "GET /search/code", "GET /search/commits", "GET /search/issues", "GET /search/labels", "GET /search/repositories", "GET /search/topics", "GET /search/users", "GET /teams/{team_id}/discussions", "GET /teams/{team_id}/discussions/{discussion_number}/comments", "GET /teams/{team_id}/discussions/{discussion_number}/comments/{comment_number}/reactions", "GET /teams/{team_id}/discussions/{discussion_number}/reactions", "GET /teams/{team_id}/invitations", "GET /teams/{team_id}/members", "GET /teams/{team_id}/projects", "GET /teams/{team_id}/repos", "GET /teams/{team_id}/teams", "GET /user/blocks", "GET /user/codespaces", "GET /user/codespaces/secrets", "GET /user/emails", "GET /user/followers", "GET /user/following", "GET /user/gpg_keys", "GET /user/installations", "GET /user/installations/{installation_id}/repositories", "GET /user/issues", "GET /user/keys", "GET /user/marketplace_purchases", "GET /user/marketplace_purchases/stubbed", "GET /user/memberships/orgs", "GET /user/migrations", "GET /user/migrations/{migration_id}/repositories", "GET /user/orgs", "GET /user/packages", "GET /user/packages/{package_type}/{package_name}/versions", "GET /user/public_emails", "GET /user/repos", "GET /user/repository_invitations", "GET /user/starred", "GET /user/subscriptions", "GET /user/teams", "GET /users", "GET /users/{username}/events", "GET /users/{username}/events/orgs/{org}", "GET /users/{username}/events/public", "GET /users/{username}/followers", "GET /users/{username}/following", "GET /users/{username}/gists", "GET /users/{username}/gpg_keys", "GET /users/{username}/keys", "GET /users/{username}/orgs", "GET /users/{username}/packages", "GET /users/{username}/projects", "GET /users/{username}/received_events", "GET /users/{username}/received_events/public", "GET /users/{username}/repos", "GET /users/{username}/starred", "GET /users/{username}/subscriptions"];
+
+function isPaginatingEndpoint(arg) {
+  if (typeof arg === "string") {
+    return paginatingEndpoints.includes(arg);
+  } else {
+    return false;
+  }
+}
+
 /**
  * @param octokit Octokit instance
  * @param options Options passed to Octokit constructor
@@ -3498,7 +4991,10 @@ function paginateRest(octokit) {
 }
 paginateRest.VERSION = VERSION;
 
+exports.composePaginateRest = composePaginateRest;
+exports.isPaginatingEndpoint = isPaginatingEndpoint;
 exports.paginateRest = paginateRest;
+exports.paginatingEndpoints = paginatingEndpoints;
 //# sourceMappingURL=index.js.map
 
 
@@ -3512,10 +5008,60 @@ exports.paginateRest = paginateRest;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
+function _defineProperty(obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+}
+
+function ownKeys(object, enumerableOnly) {
+  var keys = Object.keys(object);
+
+  if (Object.getOwnPropertySymbols) {
+    var symbols = Object.getOwnPropertySymbols(object);
+    if (enumerableOnly) symbols = symbols.filter(function (sym) {
+      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+    });
+    keys.push.apply(keys, symbols);
+  }
+
+  return keys;
+}
+
+function _objectSpread2(target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i] != null ? arguments[i] : {};
+
+    if (i % 2) {
+      ownKeys(Object(source), true).forEach(function (key) {
+        _defineProperty(target, key, source[key]);
+      });
+    } else if (Object.getOwnPropertyDescriptors) {
+      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+    } else {
+      ownKeys(Object(source)).forEach(function (key) {
+        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+      });
+    }
+  }
+
+  return target;
+}
+
 const Endpoints = {
   actions: {
     addSelectedRepoToOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"],
     cancelWorkflowRun: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/cancel"],
+    createOrUpdateEnvironmentSecret: ["PUT /repositories/{repository_id}/environments/{environment_name}/secrets/{secret_name}"],
     createOrUpdateOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}"],
     createOrUpdateRepoSecret: ["PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
     createRegistrationTokenForOrg: ["POST /orgs/{org}/actions/runners/registration-token"],
@@ -3524,21 +5070,37 @@ const Endpoints = {
     createRemoveTokenForRepo: ["POST /repos/{owner}/{repo}/actions/runners/remove-token"],
     createWorkflowDispatch: ["POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches"],
     deleteArtifact: ["DELETE /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
+    deleteEnvironmentSecret: ["DELETE /repositories/{repository_id}/environments/{environment_name}/secrets/{secret_name}"],
     deleteOrgSecret: ["DELETE /orgs/{org}/actions/secrets/{secret_name}"],
     deleteRepoSecret: ["DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
     deleteSelfHostedRunnerFromOrg: ["DELETE /orgs/{org}/actions/runners/{runner_id}"],
     deleteSelfHostedRunnerFromRepo: ["DELETE /repos/{owner}/{repo}/actions/runners/{runner_id}"],
     deleteWorkflowRun: ["DELETE /repos/{owner}/{repo}/actions/runs/{run_id}"],
     deleteWorkflowRunLogs: ["DELETE /repos/{owner}/{repo}/actions/runs/{run_id}/logs"],
+    disableSelectedRepositoryGithubActionsOrganization: ["DELETE /orgs/{org}/actions/permissions/repositories/{repository_id}"],
+    disableWorkflow: ["PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable"],
     downloadArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}"],
     downloadJobLogsForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs"],
     downloadWorkflowRunLogs: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs"],
+    enableSelectedRepositoryGithubActionsOrganization: ["PUT /orgs/{org}/actions/permissions/repositories/{repository_id}"],
+    enableWorkflow: ["PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable"],
+    getAllowedActionsOrganization: ["GET /orgs/{org}/actions/permissions/selected-actions"],
+    getAllowedActionsRepository: ["GET /repos/{owner}/{repo}/actions/permissions/selected-actions"],
     getArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
+    getEnvironmentPublicKey: ["GET /repositories/{repository_id}/environments/{environment_name}/secrets/public-key"],
+    getEnvironmentSecret: ["GET /repositories/{repository_id}/environments/{environment_name}/secrets/{secret_name}"],
+    getGithubActionsPermissionsOrganization: ["GET /orgs/{org}/actions/permissions"],
+    getGithubActionsPermissionsRepository: ["GET /repos/{owner}/{repo}/actions/permissions"],
     getJobForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}"],
     getOrgPublicKey: ["GET /orgs/{org}/actions/secrets/public-key"],
     getOrgSecret: ["GET /orgs/{org}/actions/secrets/{secret_name}"],
+    getPendingDeploymentsForRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments"],
+    getRepoPermissions: ["GET /repos/{owner}/{repo}/actions/permissions", {}, {
+      renamed: ["actions", "getGithubActionsPermissionsRepository"]
+    }],
     getRepoPublicKey: ["GET /repos/{owner}/{repo}/actions/secrets/public-key"],
     getRepoSecret: ["GET /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
+    getReviewsForRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/approvals"],
     getSelfHostedRunnerForOrg: ["GET /orgs/{org}/actions/runners/{runner_id}"],
     getSelfHostedRunnerForRepo: ["GET /repos/{owner}/{repo}/actions/runners/{runner_id}"],
     getWorkflow: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}"],
@@ -3546,6 +5108,7 @@ const Endpoints = {
     getWorkflowRunUsage: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/timing"],
     getWorkflowUsage: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/timing"],
     listArtifactsForRepo: ["GET /repos/{owner}/{repo}/actions/artifacts"],
+    listEnvironmentSecrets: ["GET /repositories/{repository_id}/environments/{environment_name}/secrets"],
     listJobsForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs"],
     listOrgSecrets: ["GET /orgs/{org}/actions/secrets"],
     listRepoSecrets: ["GET /repos/{owner}/{repo}/actions/secrets"],
@@ -3553,6 +5116,7 @@ const Endpoints = {
     listRunnerApplicationsForOrg: ["GET /orgs/{org}/actions/runners/downloads"],
     listRunnerApplicationsForRepo: ["GET /repos/{owner}/{repo}/actions/runners/downloads"],
     listSelectedReposForOrgSecret: ["GET /orgs/{org}/actions/secrets/{secret_name}/repositories"],
+    listSelectedRepositoriesEnabledGithubActionsOrganization: ["GET /orgs/{org}/actions/permissions/repositories"],
     listSelfHostedRunnersForOrg: ["GET /orgs/{org}/actions/runners"],
     listSelfHostedRunnersForRepo: ["GET /repos/{owner}/{repo}/actions/runners"],
     listWorkflowRunArtifacts: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"],
@@ -3560,7 +5124,13 @@ const Endpoints = {
     listWorkflowRunsForRepo: ["GET /repos/{owner}/{repo}/actions/runs"],
     reRunWorkflow: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun"],
     removeSelectedRepoFromOrgSecret: ["DELETE /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"],
-    setSelectedReposForOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}/repositories"]
+    reviewPendingDeploymentsForRun: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments"],
+    setAllowedActionsOrganization: ["PUT /orgs/{org}/actions/permissions/selected-actions"],
+    setAllowedActionsRepository: ["PUT /repos/{owner}/{repo}/actions/permissions/selected-actions"],
+    setGithubActionsPermissionsOrganization: ["PUT /orgs/{org}/actions/permissions"],
+    setGithubActionsPermissionsRepository: ["PUT /repos/{owner}/{repo}/actions/permissions"],
+    setSelectedReposForOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}/repositories"],
+    setSelectedRepositoriesEnabledGithubActionsOrganization: ["PUT /orgs/{org}/actions/permissions/repositories"]
   },
   activity: {
     checkRepoIsStarredByAuthenticatedUser: ["GET /user/starred/{owner}/{repo}"],
@@ -3596,11 +5166,7 @@ const Endpoints = {
     unstarRepoForAuthenticatedUser: ["DELETE /user/starred/{owner}/{repo}"]
   },
   apps: {
-    addRepoToInstallation: ["PUT /user/installations/{installation_id}/repositories/{repository_id}", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    addRepoToInstallation: ["PUT /user/installations/{installation_id}/repositories/{repository_id}"],
     checkToken: ["POST /applications/{client_id}/token"],
     createContentAttachment: ["POST /content_references/{content_reference_id}/attachments", {
       mediaType: {
@@ -3608,85 +5174,36 @@ const Endpoints = {
       }
     }],
     createFromManifest: ["POST /app-manifests/{code}/conversions"],
-    createInstallationAccessToken: ["POST /app/installations/{installation_id}/access_tokens", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    createInstallationAccessToken: ["POST /app/installations/{installation_id}/access_tokens"],
     deleteAuthorization: ["DELETE /applications/{client_id}/grant"],
-    deleteInstallation: ["DELETE /app/installations/{installation_id}", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    deleteInstallation: ["DELETE /app/installations/{installation_id}"],
     deleteToken: ["DELETE /applications/{client_id}/token"],
-    getAuthenticated: ["GET /app", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
-    getBySlug: ["GET /apps/{app_slug}", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
-    getInstallation: ["GET /app/installations/{installation_id}", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
-    getOrgInstallation: ["GET /orgs/{org}/installation", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
-    getRepoInstallation: ["GET /repos/{owner}/{repo}/installation", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    getAuthenticated: ["GET /app"],
+    getBySlug: ["GET /apps/{app_slug}"],
+    getInstallation: ["GET /app/installations/{installation_id}"],
+    getOrgInstallation: ["GET /orgs/{org}/installation"],
+    getRepoInstallation: ["GET /repos/{owner}/{repo}/installation"],
     getSubscriptionPlanForAccount: ["GET /marketplace_listing/accounts/{account_id}"],
     getSubscriptionPlanForAccountStubbed: ["GET /marketplace_listing/stubbed/accounts/{account_id}"],
-    getUserInstallation: ["GET /users/{username}/installation", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    getUserInstallation: ["GET /users/{username}/installation"],
+    getWebhookConfigForApp: ["GET /app/hook/config"],
     listAccountsForPlan: ["GET /marketplace_listing/plans/{plan_id}/accounts"],
     listAccountsForPlanStubbed: ["GET /marketplace_listing/stubbed/plans/{plan_id}/accounts"],
-    listInstallationReposForAuthenticatedUser: ["GET /user/installations/{installation_id}/repositories", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
-    listInstallations: ["GET /app/installations", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
-    listInstallationsForAuthenticatedUser: ["GET /user/installations", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    listInstallationReposForAuthenticatedUser: ["GET /user/installations/{installation_id}/repositories"],
+    listInstallations: ["GET /app/installations"],
+    listInstallationsForAuthenticatedUser: ["GET /user/installations"],
     listPlans: ["GET /marketplace_listing/plans"],
     listPlansStubbed: ["GET /marketplace_listing/stubbed/plans"],
-    listReposAccessibleToInstallation: ["GET /installation/repositories", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    listReposAccessibleToInstallation: ["GET /installation/repositories"],
     listSubscriptionsForAuthenticatedUser: ["GET /user/marketplace_purchases"],
     listSubscriptionsForAuthenticatedUserStubbed: ["GET /user/marketplace_purchases/stubbed"],
-    removeRepoFromInstallation: ["DELETE /user/installations/{installation_id}/repositories/{repository_id}", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    removeRepoFromInstallation: ["DELETE /user/installations/{installation_id}/repositories/{repository_id}"],
     resetToken: ["PATCH /applications/{client_id}/token"],
     revokeInstallationAccessToken: ["DELETE /installation/token"],
+    scopeToken: ["POST /applications/{client_id}/token/scoped"],
     suspendInstallation: ["PUT /app/installations/{installation_id}/suspended"],
-    unsuspendInstallation: ["DELETE /app/installations/{installation_id}/suspended"]
+    unsuspendInstallation: ["DELETE /app/installations/{installation_id}/suspended"],
+    updateWebhookConfigForApp: ["PATCH /app/hook/config"]
   },
   billing: {
     getGithubActionsBillingOrg: ["GET /orgs/{org}/settings/billing/actions"],
@@ -3697,65 +5214,32 @@ const Endpoints = {
     getSharedStorageBillingUser: ["GET /users/{username}/settings/billing/shared-storage"]
   },
   checks: {
-    create: ["POST /repos/{owner}/{repo}/check-runs", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    createSuite: ["POST /repos/{owner}/{repo}/check-suites", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    get: ["GET /repos/{owner}/{repo}/check-runs/{check_run_id}", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    getSuite: ["GET /repos/{owner}/{repo}/check-suites/{check_suite_id}", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    listAnnotations: ["GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    listForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/check-runs", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    listForSuite: ["GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    listSuitesForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/check-suites", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    rerequestSuite: ["POST /repos/{owner}/{repo}/check-suites/{check_suite_id}/rerequest", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    setSuitesPreferences: ["PATCH /repos/{owner}/{repo}/check-suites/preferences", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }],
-    update: ["PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
-      mediaType: {
-        previews: ["antiope"]
-      }
-    }]
+    create: ["POST /repos/{owner}/{repo}/check-runs"],
+    createSuite: ["POST /repos/{owner}/{repo}/check-suites"],
+    get: ["GET /repos/{owner}/{repo}/check-runs/{check_run_id}"],
+    getSuite: ["GET /repos/{owner}/{repo}/check-suites/{check_suite_id}"],
+    listAnnotations: ["GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations"],
+    listForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/check-runs"],
+    listForSuite: ["GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs"],
+    listSuitesForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/check-suites"],
+    rerequestSuite: ["POST /repos/{owner}/{repo}/check-suites/{check_suite_id}/rerequest"],
+    setSuitesPreferences: ["PATCH /repos/{owner}/{repo}/check-suites/preferences"],
+    update: ["PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}"]
   },
   codeScanning: {
-    getAlert: ["GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_id}"],
-    listAlertsForRepo: ["GET /repos/{owner}/{repo}/code-scanning/alerts"]
+    deleteAnalysis: ["DELETE /repos/{owner}/{repo}/code-scanning/analyses/{analysis_id}{?confirm_delete}"],
+    getAlert: ["GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}", {}, {
+      renamedParameters: {
+        alert_id: "alert_number"
+      }
+    }],
+    getAnalysis: ["GET /repos/{owner}/{repo}/code-scanning/analyses/{analysis_id}"],
+    getSarif: ["GET /repos/{owner}/{repo}/code-scanning/sarifs/{sarif_id}"],
+    listAlertsForRepo: ["GET /repos/{owner}/{repo}/code-scanning/alerts"],
+    listAlertsInstances: ["GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances"],
+    listRecentAnalyses: ["GET /repos/{owner}/{repo}/code-scanning/analyses"],
+    updateAlert: ["PATCH /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}"],
+    uploadSarif: ["POST /repos/{owner}/{repo}/code-scanning/sarifs"]
   },
   codesOfConduct: {
     getAllCodesOfConduct: ["GET /codes_of_conduct", {
@@ -3776,6 +5260,16 @@ const Endpoints = {
   },
   emojis: {
     get: ["GET /emojis"]
+  },
+  enterpriseAdmin: {
+    disableSelectedOrganizationGithubActionsEnterprise: ["DELETE /enterprises/{enterprise}/actions/permissions/organizations/{org_id}"],
+    enableSelectedOrganizationGithubActionsEnterprise: ["PUT /enterprises/{enterprise}/actions/permissions/organizations/{org_id}"],
+    getAllowedActionsEnterprise: ["GET /enterprises/{enterprise}/actions/permissions/selected-actions"],
+    getGithubActionsPermissionsEnterprise: ["GET /enterprises/{enterprise}/actions/permissions"],
+    listSelectedOrganizationsEnabledGithubActionsEnterprise: ["GET /enterprises/{enterprise}/actions/permissions/organizations"],
+    setAllowedActionsEnterprise: ["PUT /enterprises/{enterprise}/actions/permissions/selected-actions"],
+    setGithubActionsPermissionsEnterprise: ["PUT /enterprises/{enterprise}/actions/permissions"],
+    setSelectedOrganizationsEnabledGithubActionsEnterprise: ["PUT /enterprises/{enterprise}/actions/permissions/organizations"]
   },
   gists: {
     checkIsStarred: ["GET /gists/{gist_id}/star"],
@@ -3819,35 +5313,23 @@ const Endpoints = {
     getTemplate: ["GET /gitignore/templates/{name}"]
   },
   interactions: {
-    getRestrictionsForOrg: ["GET /orgs/{org}/interaction-limits", {
-      mediaType: {
-        previews: ["sombra"]
-      }
+    getRestrictionsForAuthenticatedUser: ["GET /user/interaction-limits"],
+    getRestrictionsForOrg: ["GET /orgs/{org}/interaction-limits"],
+    getRestrictionsForRepo: ["GET /repos/{owner}/{repo}/interaction-limits"],
+    getRestrictionsForYourPublicRepos: ["GET /user/interaction-limits", {}, {
+      renamed: ["interactions", "getRestrictionsForAuthenticatedUser"]
     }],
-    getRestrictionsForRepo: ["GET /repos/{owner}/{repo}/interaction-limits", {
-      mediaType: {
-        previews: ["sombra"]
-      }
+    removeRestrictionsForAuthenticatedUser: ["DELETE /user/interaction-limits"],
+    removeRestrictionsForOrg: ["DELETE /orgs/{org}/interaction-limits"],
+    removeRestrictionsForRepo: ["DELETE /repos/{owner}/{repo}/interaction-limits"],
+    removeRestrictionsForYourPublicRepos: ["DELETE /user/interaction-limits", {}, {
+      renamed: ["interactions", "removeRestrictionsForAuthenticatedUser"]
     }],
-    removeRestrictionsForOrg: ["DELETE /orgs/{org}/interaction-limits", {
-      mediaType: {
-        previews: ["sombra"]
-      }
-    }],
-    removeRestrictionsForRepo: ["DELETE /repos/{owner}/{repo}/interaction-limits", {
-      mediaType: {
-        previews: ["sombra"]
-      }
-    }],
-    setRestrictionsForOrg: ["PUT /orgs/{org}/interaction-limits", {
-      mediaType: {
-        previews: ["sombra"]
-      }
-    }],
-    setRestrictionsForRepo: ["PUT /repos/{owner}/{repo}/interaction-limits", {
-      mediaType: {
-        previews: ["sombra"]
-      }
+    setRestrictionsForAuthenticatedUser: ["PUT /user/interaction-limits"],
+    setRestrictionsForOrg: ["PUT /orgs/{org}/interaction-limits"],
+    setRestrictionsForRepo: ["PUT /repos/{owner}/{repo}/interaction-limits"],
+    setRestrictionsForYourPublicRepos: ["PUT /user/interaction-limits", {}, {
+      renamed: ["interactions", "setRestrictionsForAuthenticatedUser"]
     }]
   },
   issues: {
@@ -3909,7 +5391,10 @@ const Endpoints = {
     }]
   },
   meta: {
-    get: ["GET /meta"]
+    get: ["GET /meta"],
+    getOctocat: ["GET /octocat"],
+    getZen: ["GET /zen"],
+    root: ["GET /"]
   },
   migrations: {
     cancelImport: ["DELETE /repos/{owner}/{repo}/import"],
@@ -3985,6 +5470,7 @@ const Endpoints = {
   },
   orgs: {
     blockUser: ["PUT /orgs/{org}/blocks/{username}"],
+    cancelInvitation: ["DELETE /orgs/{org}/invitations/{invitation_id}"],
     checkBlockedUser: ["GET /orgs/{org}/blocks/{username}"],
     checkMembershipForUser: ["GET /orgs/{org}/members/{username}"],
     checkPublicMembershipForUser: ["GET /orgs/{org}/public_members/{username}"],
@@ -3996,13 +5482,11 @@ const Endpoints = {
     getMembershipForAuthenticatedUser: ["GET /user/memberships/orgs/{org}"],
     getMembershipForUser: ["GET /orgs/{org}/memberships/{username}"],
     getWebhook: ["GET /orgs/{org}/hooks/{hook_id}"],
+    getWebhookConfigForOrg: ["GET /orgs/{org}/hooks/{hook_id}/config"],
     list: ["GET /organizations"],
-    listAppInstallations: ["GET /orgs/{org}/installations", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }],
+    listAppInstallations: ["GET /orgs/{org}/installations"],
     listBlockedUsers: ["GET /orgs/{org}/blocks"],
+    listFailedInvitations: ["GET /orgs/{org}/failed_invitations"],
     listForAuthenticatedUser: ["GET /user/orgs"],
     listForUser: ["GET /users/{username}/orgs"],
     listInvitationTeams: ["GET /orgs/{org}/invitations/{invitation_id}/teams"],
@@ -4022,7 +5506,33 @@ const Endpoints = {
     unblockUser: ["DELETE /orgs/{org}/blocks/{username}"],
     update: ["PATCH /orgs/{org}"],
     updateMembershipForAuthenticatedUser: ["PATCH /user/memberships/orgs/{org}"],
-    updateWebhook: ["PATCH /orgs/{org}/hooks/{hook_id}"]
+    updateWebhook: ["PATCH /orgs/{org}/hooks/{hook_id}"],
+    updateWebhookConfigForOrg: ["PATCH /orgs/{org}/hooks/{hook_id}/config"]
+  },
+  packages: {
+    deletePackageForAuthenticatedUser: ["DELETE /user/packages/{package_type}/{package_name}"],
+    deletePackageForOrg: ["DELETE /orgs/{org}/packages/{package_type}/{package_name}"],
+    deletePackageVersionForAuthenticatedUser: ["DELETE /user/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    deletePackageVersionForOrg: ["DELETE /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    getAllPackageVersionsForAPackageOwnedByAnOrg: ["GET /orgs/{org}/packages/{package_type}/{package_name}/versions", {}, {
+      renamed: ["packages", "getAllPackageVersionsForPackageOwnedByOrg"]
+    }],
+    getAllPackageVersionsForAPackageOwnedByTheAuthenticatedUser: ["GET /user/packages/{package_type}/{package_name}/versions", {}, {
+      renamed: ["packages", "getAllPackageVersionsForPackageOwnedByAuthenticatedUser"]
+    }],
+    getAllPackageVersionsForPackageOwnedByAuthenticatedUser: ["GET /user/packages/{package_type}/{package_name}/versions"],
+    getAllPackageVersionsForPackageOwnedByOrg: ["GET /orgs/{org}/packages/{package_type}/{package_name}/versions"],
+    getAllPackageVersionsForPackageOwnedByUser: ["GET /users/{username}/packages/{package_type}/{package_name}/versions"],
+    getPackageForAuthenticatedUser: ["GET /user/packages/{package_type}/{package_name}"],
+    getPackageForOrganization: ["GET /orgs/{org}/packages/{package_type}/{package_name}"],
+    getPackageForUser: ["GET /users/{username}/packages/{package_type}/{package_name}"],
+    getPackageVersionForAuthenticatedUser: ["GET /user/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    getPackageVersionForOrganization: ["GET /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    getPackageVersionForUser: ["GET /users/{username}/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    restorePackageForAuthenticatedUser: ["POST /user/packages/{package_type}/{package_name}/restore{?token}"],
+    restorePackageForOrg: ["POST /orgs/{org}/packages/{package_type}/{package_name}/restore{?token}"],
+    restorePackageVersionForAuthenticatedUser: ["POST /user/packages/{package_type}/{package_name}/versions/{package_version_id}/restore"],
+    restorePackageVersionForOrg: ["POST /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}/restore"]
   },
   projects: {
     addCollaborator: ["PUT /projects/{project_id}/collaborators/{username}", {
@@ -4253,7 +5763,7 @@ const Endpoints = {
         previews: ["squirrel-girl"]
       }
     }, {
-      deprecated: "octokit.reactions.deleteLegacy() is deprecated, see https://developer.github.com/v3/reactions/#delete-a-reaction-legacy"
+      deprecated: "octokit.rest.reactions.deleteLegacy() is deprecated, see https://docs.github.com/rest/reference/reactions/#delete-a-reaction-legacy"
     }],
     listForCommitComment: ["GET /repos/{owner}/{repo}/comments/{comment_id}/reactions", {
       mediaType: {
@@ -4322,6 +5832,7 @@ const Endpoints = {
     createForAuthenticatedUser: ["POST /user/repos"],
     createFork: ["POST /repos/{owner}/{repo}/forks"],
     createInOrg: ["POST /orgs/{org}/repos"],
+    createOrUpdateEnvironment: ["PUT /repos/{owner}/{repo}/environments/{environment_name}"],
     createOrUpdateFileContents: ["PUT /repos/{owner}/{repo}/contents/{path}"],
     createPagesSite: ["POST /repos/{owner}/{repo}/pages", {
       mediaType: {
@@ -4339,6 +5850,7 @@ const Endpoints = {
     delete: ["DELETE /repos/{owner}/{repo}"],
     deleteAccessRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions"],
     deleteAdminBranchProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"],
+    deleteAnEnvironment: ["DELETE /repos/{owner}/{repo}/environments/{environment_name}"],
     deleteBranchProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection"],
     deleteCommitComment: ["DELETE /repos/{owner}/{repo}/comments/{comment_id}"],
     deleteCommitSignatureProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
@@ -4369,7 +5881,11 @@ const Endpoints = {
         previews: ["dorian"]
       }
     }],
-    downloadArchive: ["GET /repos/{owner}/{repo}/{archive_format}/{ref}"],
+    downloadArchive: ["GET /repos/{owner}/{repo}/zipball/{ref}", {}, {
+      renamed: ["repos", "downloadZipballArchive"]
+    }],
+    downloadTarballArchive: ["GET /repos/{owner}/{repo}/tarball/{ref}"],
+    downloadZipballArchive: ["GET /repos/{owner}/{repo}/zipball/{ref}"],
     enableAutomatedSecurityFixes: ["PUT /repos/{owner}/{repo}/automated-security-fixes", {
       mediaType: {
         previews: ["london"]
@@ -4383,6 +5899,7 @@ const Endpoints = {
     get: ["GET /repos/{owner}/{repo}"],
     getAccessRestrictions: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions"],
     getAdminBranchProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"],
+    getAllEnvironments: ["GET /repos/{owner}/{repo}/environments"],
     getAllStatusCheckContexts: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts"],
     getAllTopics: ["GET /repos/{owner}/{repo}/topics", {
       mediaType: {
@@ -4404,16 +5921,13 @@ const Endpoints = {
         previews: ["zzzax"]
       }
     }],
-    getCommunityProfileMetrics: ["GET /repos/{owner}/{repo}/community/profile", {
-      mediaType: {
-        previews: ["black-panther"]
-      }
-    }],
+    getCommunityProfileMetrics: ["GET /repos/{owner}/{repo}/community/profile"],
     getContent: ["GET /repos/{owner}/{repo}/contents/{path}"],
     getContributorsStats: ["GET /repos/{owner}/{repo}/stats/contributors"],
     getDeployKey: ["GET /repos/{owner}/{repo}/keys/{key_id}"],
     getDeployment: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}"],
     getDeploymentStatus: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses/{status_id}"],
+    getEnvironment: ["GET /repos/{owner}/{repo}/environments/{environment_name}"],
     getLatestPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/latest"],
     getLatestRelease: ["GET /repos/{owner}/{repo}/releases/latest"],
     getPages: ["GET /repos/{owner}/{repo}/pages"],
@@ -4422,6 +5936,7 @@ const Endpoints = {
     getPullRequestReviewProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"],
     getPunchCardStats: ["GET /repos/{owner}/{repo}/stats/punch_card"],
     getReadme: ["GET /repos/{owner}/{repo}/readme"],
+    getReadmeInDirectory: ["GET /repos/{owner}/{repo}/readme/{dir}"],
     getRelease: ["GET /repos/{owner}/{repo}/releases/{release_id}"],
     getReleaseAsset: ["GET /repos/{owner}/{repo}/releases/assets/{asset_id}"],
     getReleaseByTag: ["GET /repos/{owner}/{repo}/releases/tags/{tag}"],
@@ -4432,6 +5947,7 @@ const Endpoints = {
     getUsersWithAccessToProtectedBranch: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users"],
     getViews: ["GET /repos/{owner}/{repo}/traffic/views"],
     getWebhook: ["GET /repos/{owner}/{repo}/hooks/{hook_id}"],
+    getWebhookConfigForRepo: ["GET /repos/{owner}/{repo}/hooks/{hook_id}/config"],
     listBranches: ["GET /repos/{owner}/{repo}/branches"],
     listBranchesForHeadCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/branches-where-head", {
       mediaType: {
@@ -4482,6 +5998,7 @@ const Endpoints = {
     removeUserAccessRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users", {}, {
       mapToData: "users"
     }],
+    renameBranch: ["POST /repos/{owner}/{repo}/branches/{branch}/rename"],
     replaceAllTopics: ["PUT /repos/{owner}/{repo}/topics", {
       mediaType: {
         previews: ["mercy"]
@@ -4511,8 +6028,12 @@ const Endpoints = {
     updatePullRequestReviewProtection: ["PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"],
     updateRelease: ["PATCH /repos/{owner}/{repo}/releases/{release_id}"],
     updateReleaseAsset: ["PATCH /repos/{owner}/{repo}/releases/assets/{asset_id}"],
-    updateStatusCheckPotection: ["PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks"],
+    updateStatusCheckPotection: ["PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks", {}, {
+      renamed: ["repos", "updateStatusCheckProtection"]
+    }],
+    updateStatusCheckProtection: ["PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks"],
     updateWebhook: ["PATCH /repos/{owner}/{repo}/hooks/{hook_id}"],
+    updateWebhookConfigForRepo: ["PATCH /repos/{owner}/{repo}/hooks/{hook_id}/config"],
     uploadReleaseAsset: ["POST /repos/{owner}/{repo}/releases/{release_id}/assets{?name,label}", {
       baseUrl: "https://uploads.github.com"
     }]
@@ -4533,6 +6054,11 @@ const Endpoints = {
       }
     }],
     users: ["GET /search/users"]
+  },
+  secretScanning: {
+    getAlert: ["GET /repos/{owner}/{repo}/secret-scanning/alerts/{alert_number}"],
+    listAlertsForRepo: ["GET /repos/{owner}/{repo}/secret-scanning/alerts"],
+    updateAlert: ["PATCH /repos/{owner}/{repo}/secret-scanning/alerts/{alert_number}"]
   },
   teams: {
     addOrUpdateMembershipForUserInOrg: ["PUT /orgs/{org}/teams/{team_slug}/memberships/{username}"],
@@ -4614,7 +6140,7 @@ const Endpoints = {
   }
 };
 
-const VERSION = "4.1.2";
+const VERSION = "4.15.1";
 
 function endpointsToMethods(octokit, endpointsMap) {
   const newMethods = {};
@@ -4697,19 +6223,11 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
   return Object.assign(withDecorations, requestWithDefaults);
 }
 
-/**
- * This plugin is a 1:1 copy of internal @octokit/rest plugins. The primary
- * goal is to rebuild @octokit/rest on top of @octokit/core. Once that is
- * done, we will remove the registerEndpoints methods and return the methods
- * directly as with the other plugins. At that point we will also remove the
- * legacy workarounds and deprecations.
- *
- * See the plan at
- * https://github.com/octokit/plugin-rest-endpoint-methods.js/pull/1
- */
-
 function restEndpointMethods(octokit) {
-  return endpointsToMethods(octokit, Endpoints);
+  const api = endpointsToMethods(octokit, Endpoints);
+  return _objectSpread2(_objectSpread2({}, api), {}, {
+    rest: api
+  });
 }
 restEndpointMethods.VERSION = VERSION;
 
@@ -4732,7 +6250,8 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 var deprecation = __nccwpck_require__(4150);
 var once = _interopDefault(__nccwpck_require__(5560));
 
-const logOnce = once(deprecation => console.warn(deprecation));
+const logOnceCode = once(deprecation => console.warn(deprecation));
+const logOnceHeaders = once(deprecation => console.warn(deprecation));
 /**
  * Error with extra properties to help with debugging
  */
@@ -4749,14 +6268,17 @@ class RequestError extends Error {
 
     this.name = "HttpError";
     this.status = statusCode;
-    Object.defineProperty(this, "code", {
-      get() {
-        logOnce(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
-        return statusCode;
-      }
+    let headers;
 
-    });
-    this.headers = options.headers || {}; // redact request credentials without mutating original request options
+    if ("headers" in options && typeof options.headers !== "undefined") {
+      headers = options.headers;
+    }
+
+    if ("response" in options) {
+      this.response = options.response;
+      headers = options.response.headers;
+    } // redact request credentials without mutating original request options
+
 
     const requestCopy = Object.assign({}, options.request);
 
@@ -4771,7 +6293,22 @@ class RequestError extends Error {
     .replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]") // OAuth tokens can be passed as URL query parameters, although it is not recommended
     // see https://developer.github.com/v3/#oauth2-token-sent-in-a-header
     .replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
+    this.request = requestCopy; // deprecations
+
+    Object.defineProperty(this, "code", {
+      get() {
+        logOnceCode(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
+        return statusCode;
+      }
+
+    });
+    Object.defineProperty(this, "headers", {
+      get() {
+        logOnceHeaders(new deprecation.Deprecation("[@octokit/request-error] `error.headers` is deprecated, use `error.response.headers`."));
+        return headers || {};
+      }
+
+    });
   }
 
 }
@@ -4794,18 +6331,20 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var endpoint = __nccwpck_require__(4471);
 var universalUserAgent = __nccwpck_require__(3843);
-var isPlainObject = _interopDefault(__nccwpck_require__(9139));
+var isPlainObject = __nccwpck_require__(3407);
 var nodeFetch = _interopDefault(__nccwpck_require__(6705));
 var requestError = __nccwpck_require__(3708);
 
-const VERSION = "5.4.7";
+const VERSION = "5.6.3";
 
 function getBufferResponse(response) {
   return response.arrayBuffer();
 }
 
 function fetchWrapper(requestOptions) {
-  if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
+  const log = requestOptions.request && requestOptions.request.log ? requestOptions.request.log : console;
+
+  if (isPlainObject.isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
     requestOptions.body = JSON.stringify(requestOptions.body);
   }
 
@@ -4818,12 +6357,20 @@ function fetchWrapper(requestOptions) {
     body: requestOptions.body,
     headers: requestOptions.headers,
     redirect: requestOptions.redirect
-  }, requestOptions.request)).then(response => {
+  }, // `requestOptions.request.agent` type is incompatible
+  // see https://github.com/octokit/types.ts/pull/264
+  requestOptions.request)).then(async response => {
     url = response.url;
     status = response.status;
 
     for (const keyAndValue of response.headers) {
       headers[keyAndValue[0]] = keyAndValue[1];
+    }
+
+    if ("deprecation" in headers) {
+      const matches = headers.link && headers.link.match(/<([^>]+)>; rel="deprecation"/);
+      const deprecationLink = matches && matches.pop();
+      log.warn(`[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${headers.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`);
     }
 
     if (status === 204 || status === 205) {
@@ -4837,49 +6384,43 @@ function fetchWrapper(requestOptions) {
       }
 
       throw new requestError.RequestError(response.statusText, status, {
-        headers,
+        response: {
+          url,
+          status,
+          headers,
+          data: undefined
+        },
         request: requestOptions
       });
     }
 
     if (status === 304) {
       throw new requestError.RequestError("Not modified", status, {
-        headers,
+        response: {
+          url,
+          status,
+          headers,
+          data: await getResponseData(response)
+        },
         request: requestOptions
       });
     }
 
     if (status >= 400) {
-      return response.text().then(message => {
-        const error = new requestError.RequestError(message, status, {
+      const data = await getResponseData(response);
+      const error = new requestError.RequestError(toErrorMessage(data), status, {
+        response: {
+          url,
+          status,
           headers,
-          request: requestOptions
-        });
-
-        try {
-          let responseBody = JSON.parse(error.message);
-          Object.assign(error, responseBody);
-          let errors = responseBody.errors; // Assumption `errors` would always be in Array format
-
-          error.message = error.message + ": " + errors.map(JSON.stringify).join(", ");
-        } catch (e) {// ignore, see octokit/rest.js#684
-        }
-
-        throw error;
+          data
+        },
+        request: requestOptions
       });
+      throw error;
     }
 
-    const contentType = response.headers.get("content-type");
-
-    if (/application\/json/.test(contentType)) {
-      return response.json();
-    }
-
-    if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
-      return response.text();
-    }
-
-    return getBufferResponse(response);
+    return getResponseData(response);
   }).then(data => {
     return {
       status,
@@ -4888,15 +6429,40 @@ function fetchWrapper(requestOptions) {
       data
     };
   }).catch(error => {
-    if (error instanceof requestError.RequestError) {
-      throw error;
-    }
-
+    if (error instanceof requestError.RequestError) throw error;
     throw new requestError.RequestError(error.message, 500, {
-      headers,
       request: requestOptions
     });
   });
+}
+
+async function getResponseData(response) {
+  const contentType = response.headers.get("content-type");
+
+  if (/application\/json/.test(contentType)) {
+    return response.json();
+  }
+
+  if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
+    return response.text();
+  }
+
+  return getBufferResponse(response);
+}
+
+function toErrorMessage(data) {
+  if (typeof data === "string") return data; // istanbul ignore else - just in case
+
+  if ("message" in data) {
+    if (Array.isArray(data.errors)) {
+      return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}`;
+    }
+
+    return data.message;
+  } // istanbul ignore next - just in case
+
+
+  return `Unknown error: ${JSON.stringify(data)}`;
 }
 
 function withDefaults(oldEndpoint, newDefaults) {
@@ -5382,63 +6948,67 @@ function descending(a, b)
 /***/ 2732:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-var register = __nccwpck_require__(1063)
-var addHook = __nccwpck_require__(2027)
-var removeHook = __nccwpck_require__(9934)
+var register = __nccwpck_require__(1063);
+var addHook = __nccwpck_require__(2027);
+var removeHook = __nccwpck_require__(9934);
 
 // bind with array of arguments: https://stackoverflow.com/a/21792913
-var bind = Function.bind
-var bindable = bind.bind(bind)
+var bind = Function.bind;
+var bindable = bind.bind(bind);
 
-function bindApi (hook, state, name) {
-  var removeHookRef = bindable(removeHook, null).apply(null, name ? [state, name] : [state])
-  hook.api = { remove: removeHookRef }
-  hook.remove = removeHookRef
-
-  ;['before', 'error', 'after', 'wrap'].forEach(function (kind) {
-    var args = name ? [state, kind, name] : [state, kind]
-    hook[kind] = hook.api[kind] = bindable(addHook, null).apply(null, args)
-  })
+function bindApi(hook, state, name) {
+  var removeHookRef = bindable(removeHook, null).apply(
+    null,
+    name ? [state, name] : [state]
+  );
+  hook.api = { remove: removeHookRef };
+  hook.remove = removeHookRef;
+  ["before", "error", "after", "wrap"].forEach(function (kind) {
+    var args = name ? [state, kind, name] : [state, kind];
+    hook[kind] = hook.api[kind] = bindable(addHook, null).apply(null, args);
+  });
 }
 
-function HookSingular () {
-  var singularHookName = 'h'
+function HookSingular() {
+  var singularHookName = "h";
   var singularHookState = {
-    registry: {}
-  }
-  var singularHook = register.bind(null, singularHookState, singularHookName)
-  bindApi(singularHook, singularHookState, singularHookName)
-  return singularHook
+    registry: {},
+  };
+  var singularHook = register.bind(null, singularHookState, singularHookName);
+  bindApi(singularHook, singularHookState, singularHookName);
+  return singularHook;
 }
 
-function HookCollection () {
+function HookCollection() {
   var state = {
-    registry: {}
-  }
+    registry: {},
+  };
 
-  var hook = register.bind(null, state)
-  bindApi(hook, state)
+  var hook = register.bind(null, state);
+  bindApi(hook, state);
 
-  return hook
+  return hook;
 }
 
-var collectionHookDeprecationMessageDisplayed = false
-function Hook () {
+var collectionHookDeprecationMessageDisplayed = false;
+function Hook() {
   if (!collectionHookDeprecationMessageDisplayed) {
-    console.warn('[before-after-hook]: "Hook()" repurposing warning, use "Hook.Collection()". Read more: https://git.io/upgrade-before-after-hook-to-1.4')
-    collectionHookDeprecationMessageDisplayed = true
+    console.warn(
+      '[before-after-hook]: "Hook()" repurposing warning, use "Hook.Collection()". Read more: https://git.io/upgrade-before-after-hook-to-1.4'
+    );
+    collectionHookDeprecationMessageDisplayed = true;
   }
-  return HookCollection()
+  return HookCollection();
 }
 
-Hook.Singular = HookSingular.bind()
-Hook.Collection = HookCollection.bind()
+Hook.Singular = HookSingular.bind();
+Hook.Collection = HookCollection.bind();
 
-module.exports = Hook
+module.exports = Hook;
 // expose constructors as a named property for TypeScript
-module.exports.Hook = Hook
-module.exports.Singular = Hook.Singular
-module.exports.Collection = Hook.Collection
+module.exports.Hook = Hook;
+module.exports.Singular = Hook.Singular;
+module.exports.Collection = Hook.Collection;
 
 
 /***/ }),
@@ -5446,51 +7016,51 @@ module.exports.Collection = Hook.Collection
 /***/ 2027:
 /***/ ((module) => {
 
-module.exports = addHook
+module.exports = addHook;
 
-function addHook (state, kind, name, hook) {
-  var orig = hook
+function addHook(state, kind, name, hook) {
+  var orig = hook;
   if (!state.registry[name]) {
-    state.registry[name] = []
+    state.registry[name] = [];
   }
 
-  if (kind === 'before') {
+  if (kind === "before") {
     hook = function (method, options) {
       return Promise.resolve()
         .then(orig.bind(null, options))
-        .then(method.bind(null, options))
-    }
+        .then(method.bind(null, options));
+    };
   }
 
-  if (kind === 'after') {
+  if (kind === "after") {
     hook = function (method, options) {
-      var result
+      var result;
       return Promise.resolve()
         .then(method.bind(null, options))
         .then(function (result_) {
-          result = result_
-          return orig(result, options)
+          result = result_;
+          return orig(result, options);
         })
         .then(function () {
-          return result
-        })
-    }
+          return result;
+        });
+    };
   }
 
-  if (kind === 'error') {
+  if (kind === "error") {
     hook = function (method, options) {
       return Promise.resolve()
         .then(method.bind(null, options))
         .catch(function (error) {
-          return orig(error, options)
-        })
-    }
+          return orig(error, options);
+        });
+    };
   }
 
   state.registry[name].push({
     hook: hook,
-    orig: orig
-  })
+    orig: orig,
+  });
 }
 
 
@@ -5499,33 +7069,32 @@ function addHook (state, kind, name, hook) {
 /***/ 1063:
 /***/ ((module) => {
 
-module.exports = register
+module.exports = register;
 
-function register (state, name, method, options) {
-  if (typeof method !== 'function') {
-    throw new Error('method for before hook must be a function')
+function register(state, name, method, options) {
+  if (typeof method !== "function") {
+    throw new Error("method for before hook must be a function");
   }
 
   if (!options) {
-    options = {}
+    options = {};
   }
 
   if (Array.isArray(name)) {
     return name.reverse().reduce(function (callback, name) {
-      return register.bind(null, state, name, callback, options)
-    }, method)()
+      return register.bind(null, state, name, callback, options);
+    }, method)();
   }
 
-  return Promise.resolve()
-    .then(function () {
-      if (!state.registry[name]) {
-        return method(options)
-      }
+  return Promise.resolve().then(function () {
+    if (!state.registry[name]) {
+      return method(options);
+    }
 
-      return (state.registry[name]).reduce(function (method, registered) {
-        return registered.hook.bind(null, method, options)
-      }, method)()
-    })
+    return state.registry[name].reduce(function (method, registered) {
+      return registered.hook.bind(null, method, options);
+    }, method)();
+  });
 }
 
 
@@ -5534,22 +7103,24 @@ function register (state, name, method, options) {
 /***/ 9934:
 /***/ ((module) => {
 
-module.exports = removeHook
+module.exports = removeHook;
 
-function removeHook (state, name, method) {
+function removeHook(state, name, method) {
   if (!state.registry[name]) {
-    return
+    return;
   }
 
   var index = state.registry[name]
-    .map(function (registered) { return registered.orig })
-    .indexOf(method)
+    .map(function (registered) {
+      return registered.orig;
+    })
+    .indexOf(method);
 
   if (index === -1) {
-    return
+    return;
   }
 
-  state.registry[name].splice(index, 1)
+  state.registry[name].splice(index, 1);
 }
 
 
@@ -5981,6 +7552,7 @@ function useColors() {
 
 	// Is webkit? http://stackoverflow.com/a/16459606/376773
 	// document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
+	// eslint-disable-next-line no-return-assign
 	return (typeof document !== 'undefined' && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance) ||
 		// Is firebug? http://stackoverflow.com/a/398120/376773
 		(typeof window !== 'undefined' && window.console && (window.console.firebug || (window.console.exception && window.console.table))) ||
@@ -6070,7 +7642,7 @@ function save(namespaces) {
 function load() {
 	let r;
 	try {
-		r = exports.storage.getItem('debug');
+		r = exports.storage.getItem('debug') || exports.storage.getItem('DEBUG') ;
 	} catch (error) {
 		// Swallow
 		// XXX (@Qix-) should we be logging these?
@@ -6296,24 +7868,62 @@ function setup(env) {
 		createDebug.names = [];
 		createDebug.skips = [];
 
-		let i;
-		const split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
-		const len = split.length;
+		const split = (typeof namespaces === 'string' ? namespaces : '')
+			.trim()
+			.replace(/\s+/g, ',')
+			.split(',')
+			.filter(Boolean);
 
-		for (i = 0; i < len; i++) {
-			if (!split[i]) {
-				// ignore empty strings
-				continue;
-			}
-
-			namespaces = split[i].replace(/\*/g, '.*?');
-
-			if (namespaces[0] === '-') {
-				createDebug.skips.push(new RegExp('^' + namespaces.slice(1) + '$'));
+		for (const ns of split) {
+			if (ns[0] === '-') {
+				createDebug.skips.push(ns.slice(1));
 			} else {
-				createDebug.names.push(new RegExp('^' + namespaces + '$'));
+				createDebug.names.push(ns);
 			}
 		}
+	}
+
+	/**
+	 * Checks if the given string matches a namespace template, honoring
+	 * asterisks as wildcards.
+	 *
+	 * @param {String} search
+	 * @param {String} template
+	 * @return {Boolean}
+	 */
+	function matchesTemplate(search, template) {
+		let searchIndex = 0;
+		let templateIndex = 0;
+		let starIndex = -1;
+		let matchIndex = 0;
+
+		while (searchIndex < search.length) {
+			if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === '*')) {
+				// Match character or proceed with wildcard
+				if (template[templateIndex] === '*') {
+					starIndex = templateIndex;
+					matchIndex = searchIndex;
+					templateIndex++; // Skip the '*'
+				} else {
+					searchIndex++;
+					templateIndex++;
+				}
+			} else if (starIndex !== -1) { // eslint-disable-line no-negated-condition
+				// Backtrack to the last '*' and try to match more characters
+				templateIndex = starIndex + 1;
+				matchIndex++;
+				searchIndex = matchIndex;
+			} else {
+				return false; // No match
+			}
+		}
+
+		// Handle trailing '*' in template
+		while (templateIndex < template.length && template[templateIndex] === '*') {
+			templateIndex++;
+		}
+
+		return templateIndex === template.length;
 	}
 
 	/**
@@ -6324,8 +7934,8 @@ function setup(env) {
 	*/
 	function disable() {
 		const namespaces = [
-			...createDebug.names.map(toNamespace),
-			...createDebug.skips.map(toNamespace).map(namespace => '-' + namespace)
+			...createDebug.names,
+			...createDebug.skips.map(namespace => '-' + namespace)
 		].join(',');
 		createDebug.enable('');
 		return namespaces;
@@ -6339,39 +7949,19 @@ function setup(env) {
 	* @api public
 	*/
 	function enabled(name) {
-		if (name[name.length - 1] === '*') {
-			return true;
-		}
-
-		let i;
-		let len;
-
-		for (i = 0, len = createDebug.skips.length; i < len; i++) {
-			if (createDebug.skips[i].test(name)) {
+		for (const skip of createDebug.skips) {
+			if (matchesTemplate(name, skip)) {
 				return false;
 			}
 		}
 
-		for (i = 0, len = createDebug.names.length; i < len; i++) {
-			if (createDebug.names[i].test(name)) {
+		for (const ns of createDebug.names) {
+			if (matchesTemplate(name, ns)) {
 				return true;
 			}
 		}
 
 		return false;
-	}
-
-	/**
-	* Convert regexp to namespace
-	*
-	* @param {RegExp} regxep
-	* @return {String} namespace
-	* @api private
-	*/
-	function toNamespace(regexp) {
-		return regexp.toString()
-			.substring(2, regexp.toString().length - 2)
-			.replace(/\.\*\?$/, '*');
 	}
 
 	/**
@@ -6457,7 +8047,7 @@ exports.colors = [6, 2, 3, 4, 5, 1];
 try {
 	// Optional dependency (as in, doesn't need to be installed, NOT like optionalDependencies in package.json)
 	// eslint-disable-next-line import/no-extraneous-dependencies
-	const supportsColor = __nccwpck_require__(75);
+	const supportsColor = __nccwpck_require__(1450);
 
 	if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
 		exports.colors = [
@@ -8856,6 +10446,22 @@ module.exports = $gOPD;
 
 /***/ }),
 
+/***/ 3813:
+/***/ ((module) => {
+
+"use strict";
+
+
+module.exports = (flag, argv = process.argv) => {
+	const prefix = flag.startsWith('-') ? '' : (flag.length === 1 ? '-' : '--');
+	const position = argv.indexOf(prefix + flag);
+	const terminatorPosition = argv.indexOf('--');
+	return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+};
+
+
+/***/ }),
+
 /***/ 3336:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -8963,11 +10569,13 @@ module.exports = bind.call(call, $hasOwn);
 
 /***/ }),
 
-/***/ 9139:
-/***/ ((module) => {
+/***/ 3407:
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 /*!
  * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
@@ -9002,7 +10610,7 @@ function isPlainObject(o) {
   return true;
 }
 
-module.exports = isPlainObject;
+exports.isPlainObject = isPlainObject;
 
 
 /***/ }),
@@ -11452,6 +13060,166 @@ function getEnv(key) {
 }
 
 exports.getProxyForUrl = getProxyForUrl;
+
+
+/***/ }),
+
+/***/ 1450:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+const os = __nccwpck_require__(857);
+const tty = __nccwpck_require__(2018);
+const hasFlag = __nccwpck_require__(3813);
+
+const {env} = process;
+
+let flagForceColor;
+if (hasFlag('no-color') ||
+	hasFlag('no-colors') ||
+	hasFlag('color=false') ||
+	hasFlag('color=never')) {
+	flagForceColor = 0;
+} else if (hasFlag('color') ||
+	hasFlag('colors') ||
+	hasFlag('color=true') ||
+	hasFlag('color=always')) {
+	flagForceColor = 1;
+}
+
+function envForceColor() {
+	if ('FORCE_COLOR' in env) {
+		if (env.FORCE_COLOR === 'true') {
+			return 1;
+		}
+
+		if (env.FORCE_COLOR === 'false') {
+			return 0;
+		}
+
+		return env.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3);
+	}
+}
+
+function translateLevel(level) {
+	if (level === 0) {
+		return false;
+	}
+
+	return {
+		level,
+		hasBasic: true,
+		has256: level >= 2,
+		has16m: level >= 3
+	};
+}
+
+function supportsColor(haveStream, {streamIsTTY, sniffFlags = true} = {}) {
+	const noFlagForceColor = envForceColor();
+	if (noFlagForceColor !== undefined) {
+		flagForceColor = noFlagForceColor;
+	}
+
+	const forceColor = sniffFlags ? flagForceColor : noFlagForceColor;
+
+	if (forceColor === 0) {
+		return 0;
+	}
+
+	if (sniffFlags) {
+		if (hasFlag('color=16m') ||
+			hasFlag('color=full') ||
+			hasFlag('color=truecolor')) {
+			return 3;
+		}
+
+		if (hasFlag('color=256')) {
+			return 2;
+		}
+	}
+
+	if (haveStream && !streamIsTTY && forceColor === undefined) {
+		return 0;
+	}
+
+	const min = forceColor || 0;
+
+	if (env.TERM === 'dumb') {
+		return min;
+	}
+
+	if (process.platform === 'win32') {
+		// Windows 10 build 10586 is the first Windows release that supports 256 colors.
+		// Windows 10 build 14931 is the first release that supports 16m/TrueColor.
+		const osRelease = os.release().split('.');
+		if (
+			Number(osRelease[0]) >= 10 &&
+			Number(osRelease[2]) >= 10586
+		) {
+			return Number(osRelease[2]) >= 14931 ? 3 : 2;
+		}
+
+		return 1;
+	}
+
+	if ('CI' in env) {
+		if (['TRAVIS', 'CIRCLECI', 'APPVEYOR', 'GITLAB_CI', 'GITHUB_ACTIONS', 'BUILDKITE', 'DRONE'].some(sign => sign in env) || env.CI_NAME === 'codeship') {
+			return 1;
+		}
+
+		return min;
+	}
+
+	if ('TEAMCITY_VERSION' in env) {
+		return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
+	}
+
+	if (env.COLORTERM === 'truecolor') {
+		return 3;
+	}
+
+	if ('TERM_PROGRAM' in env) {
+		const version = Number.parseInt((env.TERM_PROGRAM_VERSION || '').split('.')[0], 10);
+
+		switch (env.TERM_PROGRAM) {
+			case 'iTerm.app':
+				return version >= 3 ? 3 : 2;
+			case 'Apple_Terminal':
+				return 2;
+			// No default
+		}
+	}
+
+	if (/-256(color)?$/i.test(env.TERM)) {
+		return 2;
+	}
+
+	if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
+		return 1;
+	}
+
+	if ('COLORTERM' in env) {
+		return 1;
+	}
+
+	return min;
+}
+
+function getSupportLevel(stream, options = {}) {
+	const level = supportsColor(stream, {
+		streamIsTTY: stream && stream.isTTY,
+		...options
+	});
+
+	return translateLevel(level);
+}
+
+module.exports = {
+	supportsColor: getSupportLevel,
+	stdout: getSupportLevel({isTTY: tty.isatty(1)}),
+	stderr: getSupportLevel({isTTY: tty.isatty(2)})
+};
 
 
 /***/ }),
@@ -17265,7 +19033,7 @@ module.exports = {
 
 
 const { parseSetCookie } = __nccwpck_require__(8915)
-const { stringify, getHeadersList } = __nccwpck_require__(3834)
+const { stringify } = __nccwpck_require__(3834)
 const { webidl } = __nccwpck_require__(4222)
 const { Headers } = __nccwpck_require__(6349)
 
@@ -17341,14 +19109,13 @@ function getSetCookies (headers) {
 
   webidl.brandCheck(headers, Headers, { strict: false })
 
-  const cookies = getHeadersList(headers).cookies
+  const cookies = headers.getSetCookie()
 
   if (!cookies) {
     return []
   }
 
-  // In older versions of undici, cookies is a list of name:value.
-  return cookies.map((pair) => parseSetCookie(Array.isArray(pair) ? pair[1] : pair))
+  return cookies.map((pair) => parseSetCookie(pair))
 }
 
 /**
@@ -17776,14 +19543,15 @@ module.exports = {
 /***/ }),
 
 /***/ 3834:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+/***/ ((module) => {
 
 "use strict";
 
 
-const assert = __nccwpck_require__(2613)
-const { kHeadersList } = __nccwpck_require__(6443)
-
+/**
+ * @param {string} value
+ * @returns {boolean}
+ */
 function isCTLExcludingHtab (value) {
   if (value.length === 0) {
     return false
@@ -18044,31 +19812,13 @@ function stringify (cookie) {
   return out.join('; ')
 }
 
-let kHeadersListNode
-
-function getHeadersList (headers) {
-  if (headers[kHeadersList]) {
-    return headers[kHeadersList]
-  }
-
-  if (!kHeadersListNode) {
-    kHeadersListNode = Object.getOwnPropertySymbols(headers).find(
-      (symbol) => symbol.description === 'headers list'
-    )
-
-    assert(kHeadersListNode, 'Headers cannot be parsed')
-  }
-
-  const headersList = headers[kHeadersListNode]
-  assert(headersList)
-
-  return headersList
-}
-
 module.exports = {
   isCTLExcludingHtab,
-  stringify,
-  getHeadersList
+  validateCookieName,
+  validateCookiePath,
+  validateCookieValue,
+  toIMFDate,
+  stringify
 }
 
 
@@ -18267,6 +20017,132 @@ function onConnectTimeout (socket) {
 }
 
 module.exports = buildConnector
+
+
+/***/ }),
+
+/***/ 735:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {Record<string, string | undefined>} */
+const headerNameLowerCasedRecord = {}
+
+// https://developer.mozilla.org/docs/Web/HTTP/Headers
+const wellknownHeaderNames = [
+  'Accept',
+  'Accept-Encoding',
+  'Accept-Language',
+  'Accept-Ranges',
+  'Access-Control-Allow-Credentials',
+  'Access-Control-Allow-Headers',
+  'Access-Control-Allow-Methods',
+  'Access-Control-Allow-Origin',
+  'Access-Control-Expose-Headers',
+  'Access-Control-Max-Age',
+  'Access-Control-Request-Headers',
+  'Access-Control-Request-Method',
+  'Age',
+  'Allow',
+  'Alt-Svc',
+  'Alt-Used',
+  'Authorization',
+  'Cache-Control',
+  'Clear-Site-Data',
+  'Connection',
+  'Content-Disposition',
+  'Content-Encoding',
+  'Content-Language',
+  'Content-Length',
+  'Content-Location',
+  'Content-Range',
+  'Content-Security-Policy',
+  'Content-Security-Policy-Report-Only',
+  'Content-Type',
+  'Cookie',
+  'Cross-Origin-Embedder-Policy',
+  'Cross-Origin-Opener-Policy',
+  'Cross-Origin-Resource-Policy',
+  'Date',
+  'Device-Memory',
+  'Downlink',
+  'ECT',
+  'ETag',
+  'Expect',
+  'Expect-CT',
+  'Expires',
+  'Forwarded',
+  'From',
+  'Host',
+  'If-Match',
+  'If-Modified-Since',
+  'If-None-Match',
+  'If-Range',
+  'If-Unmodified-Since',
+  'Keep-Alive',
+  'Last-Modified',
+  'Link',
+  'Location',
+  'Max-Forwards',
+  'Origin',
+  'Permissions-Policy',
+  'Pragma',
+  'Proxy-Authenticate',
+  'Proxy-Authorization',
+  'RTT',
+  'Range',
+  'Referer',
+  'Referrer-Policy',
+  'Refresh',
+  'Retry-After',
+  'Sec-WebSocket-Accept',
+  'Sec-WebSocket-Extensions',
+  'Sec-WebSocket-Key',
+  'Sec-WebSocket-Protocol',
+  'Sec-WebSocket-Version',
+  'Server',
+  'Server-Timing',
+  'Service-Worker-Allowed',
+  'Service-Worker-Navigation-Preload',
+  'Set-Cookie',
+  'SourceMap',
+  'Strict-Transport-Security',
+  'Supports-Loading-Mode',
+  'TE',
+  'Timing-Allow-Origin',
+  'Trailer',
+  'Transfer-Encoding',
+  'Upgrade',
+  'Upgrade-Insecure-Requests',
+  'User-Agent',
+  'Vary',
+  'Via',
+  'WWW-Authenticate',
+  'X-Content-Type-Options',
+  'X-DNS-Prefetch-Control',
+  'X-Frame-Options',
+  'X-Permitted-Cross-Domain-Policies',
+  'X-Powered-By',
+  'X-Requested-With',
+  'X-XSS-Protection'
+]
+
+for (let i = 0; i < wellknownHeaderNames.length; ++i) {
+  const key = wellknownHeaderNames[i]
+  const lowerCasedKey = key.toLowerCase()
+  headerNameLowerCasedRecord[key] = headerNameLowerCasedRecord[lowerCasedKey] =
+    lowerCasedKey
+}
+
+// Note: object prototypes should not be able to be referenced. e.g. `Object#hasOwnProperty`.
+Object.setPrototypeOf(headerNameLowerCasedRecord, null)
+
+module.exports = {
+  wellknownHeaderNames,
+  headerNameLowerCasedRecord
+}
 
 
 /***/ }),
@@ -19101,6 +20977,7 @@ const { InvalidArgumentError } = __nccwpck_require__(8707)
 const { Blob } = __nccwpck_require__(181)
 const nodeUtil = __nccwpck_require__(9023)
 const { stringify } = __nccwpck_require__(3480)
+const { headerNameLowerCasedRecord } = __nccwpck_require__(735)
 
 const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(v => Number(v))
 
@@ -19308,6 +21185,15 @@ const KEEPALIVE_TIMEOUT_EXPR = /timeout=(\d+)/
 function parseKeepAliveTimeout (val) {
   const m = val.toString().match(KEEPALIVE_TIMEOUT_EXPR)
   return m ? parseInt(m[1], 10) * 1000 : null
+}
+
+/**
+ * Retrieves a header name and returns its lowercase value.
+ * @param {string | Buffer} value Header name
+ * @returns {string}
+ */
+function headerNameToString (value) {
+  return headerNameLowerCasedRecord[value] || value.toLowerCase()
 }
 
 function parseHeaders (headers, obj = {}) {
@@ -19581,6 +21467,7 @@ module.exports = {
   isIterable,
   isAsyncIterable,
   isDestroyed,
+  headerNameToString,
   parseRawHeaders,
   parseHeaders,
   parseKeepAliveTimeout,
@@ -19860,6 +21747,14 @@ const { isUint8Array, isArrayBuffer } = __nccwpck_require__(8253)
 const { File: UndiciFile } = __nccwpck_require__(3041)
 const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(4322)
 
+let random
+try {
+  const crypto = __nccwpck_require__(7598)
+  random = (max) => crypto.randomInt(0, max)
+} catch {
+  random = (max) => Math.floor(Math.random(max))
+}
+
 let ReadableStream = globalThis.ReadableStream
 
 /** @type {globalThis['File']} */
@@ -19945,7 +21840,7 @@ function extractBody (object, keepalive = false) {
     // Set source to a copy of the bytes held by object.
     source = new Uint8Array(object.buffer.slice(object.byteOffset, object.byteOffset + object.byteLength))
   } else if (util.isFormDataLike(object)) {
-    const boundary = `----formdata-undici-0${`${Math.floor(Math.random() * 1e11)}`.padStart(11, '0')}`
+    const boundary = `----formdata-undici-0${`${random(1e11)}`.padStart(11, '0')}`
     const prefix = `--${boundary}\r\nContent-Disposition: form-data`
 
     /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
@@ -21927,6 +23822,7 @@ const {
   isValidHeaderName,
   isValidHeaderValue
 } = __nccwpck_require__(5523)
+const util = __nccwpck_require__(9023)
 const { webidl } = __nccwpck_require__(4222)
 const assert = __nccwpck_require__(2613)
 
@@ -22480,6 +24376,9 @@ Object.defineProperties(Headers.prototype, {
   [Symbol.toStringTag]: {
     value: 'Headers',
     configurable: true
+  },
+  [util.inspect.custom]: {
+    enumerable: false
   }
 })
 
@@ -26228,14 +28127,18 @@ const { isBlobLike, toUSVString, ReadableStreamFrom } = __nccwpck_require__(3440
 const assert = __nccwpck_require__(2613)
 const { isUint8Array } = __nccwpck_require__(8253)
 
+let supportedHashes = []
+
 // https://nodejs.org/api/crypto.html#determining-if-crypto-support-is-unavailable
 /** @type {import('crypto')|undefined} */
 let crypto
 
 try {
   crypto = __nccwpck_require__(6982)
+  const possibleRelevantHashes = ['sha256', 'sha384', 'sha512']
+  supportedHashes = crypto.getHashes().filter((hash) => possibleRelevantHashes.includes(hash))
+/* c8 ignore next 3 */
 } catch {
-
 }
 
 function responseURL (response) {
@@ -26763,66 +28666,56 @@ function bytesMatch (bytes, metadataList) {
     return true
   }
 
-  // 3. If parsedMetadata is the empty set, return true.
+  // 3. If response is not eligible for integrity validation, return false.
+  // TODO
+
+  // 4. If parsedMetadata is the empty set, return true.
   if (parsedMetadata.length === 0) {
     return true
   }
 
-  // 4. Let metadata be the result of getting the strongest
+  // 5. Let metadata be the result of getting the strongest
   //    metadata from parsedMetadata.
-  const list = parsedMetadata.sort((c, d) => d.algo.localeCompare(c.algo))
-  // get the strongest algorithm
-  const strongest = list[0].algo
-  // get all entries that use the strongest algorithm; ignore weaker
-  const metadata = list.filter((item) => item.algo === strongest)
+  const strongest = getStrongestMetadata(parsedMetadata)
+  const metadata = filterMetadataListByAlgorithm(parsedMetadata, strongest)
 
-  // 5. For each item in metadata:
+  // 6. For each item in metadata:
   for (const item of metadata) {
     // 1. Let algorithm be the alg component of item.
     const algorithm = item.algo
 
     // 2. Let expectedValue be the val component of item.
-    let expectedValue = item.hash
+    const expectedValue = item.hash
 
     // See https://github.com/web-platform-tests/wpt/commit/e4c5cc7a5e48093220528dfdd1c4012dc3837a0e
     // "be liberal with padding". This is annoying, and it's not even in the spec.
 
-    if (expectedValue.endsWith('==')) {
-      expectedValue = expectedValue.slice(0, -2)
-    }
-
     // 3. Let actualValue be the result of applying algorithm to bytes.
     let actualValue = crypto.createHash(algorithm).update(bytes).digest('base64')
 
-    if (actualValue.endsWith('==')) {
-      actualValue = actualValue.slice(0, -2)
+    if (actualValue[actualValue.length - 1] === '=') {
+      if (actualValue[actualValue.length - 2] === '=') {
+        actualValue = actualValue.slice(0, -2)
+      } else {
+        actualValue = actualValue.slice(0, -1)
+      }
     }
 
     // 4. If actualValue is a case-sensitive match for expectedValue,
     //    return true.
-    if (actualValue === expectedValue) {
-      return true
-    }
-
-    let actualBase64URL = crypto.createHash(algorithm).update(bytes).digest('base64url')
-
-    if (actualBase64URL.endsWith('==')) {
-      actualBase64URL = actualBase64URL.slice(0, -2)
-    }
-
-    if (actualBase64URL === expectedValue) {
+    if (compareBase64Mixed(actualValue, expectedValue)) {
       return true
     }
   }
 
-  // 6. Return false.
+  // 7. Return false.
   return false
 }
 
 // https://w3c.github.io/webappsec-subresource-integrity/#grammardef-hash-with-options
 // https://www.w3.org/TR/CSP2/#source-list-syntax
 // https://www.rfc-editor.org/rfc/rfc5234#appendix-B.1
-const parseHashWithOptions = /((?<algo>sha256|sha384|sha512)-(?<hash>[A-z0-9+/]{1}.*={0,2}))( +[\x21-\x7e]?)?/i
+const parseHashWithOptions = /(?<algo>sha256|sha384|sha512)-((?<hash>[A-Za-z0-9+/]+|[A-Za-z0-9_-]+)={0,2}(?:\s|$)( +[!-~]*)?)?/i
 
 /**
  * @see https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata
@@ -26836,8 +28729,6 @@ function parseMetadata (metadata) {
   // 2. Let empty be equal to true.
   let empty = true
 
-  const supportedHashes = crypto.getHashes()
-
   // 3. For each token returned by splitting metadata on spaces:
   for (const token of metadata.split(' ')) {
     // 1. Set empty to false.
@@ -26847,7 +28738,11 @@ function parseMetadata (metadata) {
     const parsedToken = parseHashWithOptions.exec(token)
 
     // 3. If token does not parse, continue to the next token.
-    if (parsedToken === null || parsedToken.groups === undefined) {
+    if (
+      parsedToken === null ||
+      parsedToken.groups === undefined ||
+      parsedToken.groups.algo === undefined
+    ) {
       // Note: Chromium blocks the request at this point, but Firefox
       // gives a warning that an invalid integrity was given. The
       // correct behavior is to ignore these, and subsequently not
@@ -26856,11 +28751,11 @@ function parseMetadata (metadata) {
     }
 
     // 4. Let algorithm be the hash-algo component of token.
-    const algorithm = parsedToken.groups.algo
+    const algorithm = parsedToken.groups.algo.toLowerCase()
 
     // 5. If algorithm is a hash function recognized by the user
     //    agent, add the parsed token to result.
-    if (supportedHashes.includes(algorithm.toLowerCase())) {
+    if (supportedHashes.includes(algorithm)) {
       result.push(parsedToken.groups)
     }
   }
@@ -26871,6 +28766,82 @@ function parseMetadata (metadata) {
   }
 
   return result
+}
+
+/**
+ * @param {{ algo: 'sha256' | 'sha384' | 'sha512' }[]} metadataList
+ */
+function getStrongestMetadata (metadataList) {
+  // Let algorithm be the algo component of the first item in metadataList.
+  // Can be sha256
+  let algorithm = metadataList[0].algo
+  // If the algorithm is sha512, then it is the strongest
+  // and we can return immediately
+  if (algorithm[3] === '5') {
+    return algorithm
+  }
+
+  for (let i = 1; i < metadataList.length; ++i) {
+    const metadata = metadataList[i]
+    // If the algorithm is sha512, then it is the strongest
+    // and we can break the loop immediately
+    if (metadata.algo[3] === '5') {
+      algorithm = 'sha512'
+      break
+    // If the algorithm is sha384, then a potential sha256 or sha384 is ignored
+    } else if (algorithm[3] === '3') {
+      continue
+    // algorithm is sha256, check if algorithm is sha384 and if so, set it as
+    // the strongest
+    } else if (metadata.algo[3] === '3') {
+      algorithm = 'sha384'
+    }
+  }
+  return algorithm
+}
+
+function filterMetadataListByAlgorithm (metadataList, algorithm) {
+  if (metadataList.length === 1) {
+    return metadataList
+  }
+
+  let pos = 0
+  for (let i = 0; i < metadataList.length; ++i) {
+    if (metadataList[i].algo === algorithm) {
+      metadataList[pos++] = metadataList[i]
+    }
+  }
+
+  metadataList.length = pos
+
+  return metadataList
+}
+
+/**
+ * Compares two base64 strings, allowing for base64url
+ * in the second string.
+ *
+* @param {string} actualValue always base64
+ * @param {string} expectedValue base64 or base64url
+ * @returns {boolean}
+ */
+function compareBase64Mixed (actualValue, expectedValue) {
+  if (actualValue.length !== expectedValue.length) {
+    return false
+  }
+  for (let i = 0; i < actualValue.length; ++i) {
+    if (actualValue[i] !== expectedValue[i]) {
+      if (
+        (actualValue[i] === '+' && expectedValue[i] === '-') ||
+        (actualValue[i] === '/' && expectedValue[i] === '_')
+      ) {
+        continue
+      }
+      return false
+    }
+  }
+
+  return true
 }
 
 // https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-request
@@ -27288,7 +29259,8 @@ module.exports = {
   urlHasHttpsScheme,
   urlIsHttpHttpsScheme,
   readAllBytes,
-  normalizeMethodRecord
+  normalizeMethodRecord,
+  parseMetadata
 }
 
 
@@ -29375,12 +31347,17 @@ function parseLocation (statusCode, headers) {
 
 // https://tools.ietf.org/html/rfc7231#section-6.4.4
 function shouldRemoveHeader (header, removeContent, unknownOrigin) {
-  return (
-    (header.length === 4 && header.toString().toLowerCase() === 'host') ||
-    (removeContent && header.toString().toLowerCase().indexOf('content-') === 0) ||
-    (unknownOrigin && header.length === 13 && header.toString().toLowerCase() === 'authorization') ||
-    (unknownOrigin && header.length === 6 && header.toString().toLowerCase() === 'cookie')
-  )
+  if (header.length === 4) {
+    return util.headerNameToString(header) === 'host'
+  }
+  if (removeContent && util.headerNameToString(header).startsWith('content-')) {
+    return true
+  }
+  if (unknownOrigin && (header.length === 13 || header.length === 6 || header.length === 19)) {
+    const name = util.headerNameToString(header)
+    return name === 'authorization' || name === 'cookie' || name === 'proxy-authorization'
+  }
+  return false
 }
 
 // https://tools.ietf.org/html/rfc7231#section-6.4
@@ -31578,6 +33555,20 @@ class Pool extends PoolBase {
       ? { ...options.interceptors }
       : undefined
     this[kFactory] = factory
+
+    this.on('connectionError', (origin, targets, error) => {
+      // If a connection error occurs, we remove the client from the pool,
+      // and emit a connectionError event. They will not be re-used.
+      // Fixes https://github.com/nodejs/undici/issues/3895
+      for (const target of targets) {
+        // Do not use kRemoveClient here, as it will close the client,
+        // but the client cannot be closed in this state.
+        const idx = this[kClients].indexOf(target)
+        if (idx !== -1) {
+          this[kClients].splice(idx, 1)
+        }
+      }
+    })
   }
 
   [kGetDispatcher] () {
@@ -33895,7 +35886,7 @@ function getUserAgent() {
     return navigator.userAgent;
   }
 
-  if (typeof process === "object" && "version" in process) {
+  if (typeof process === "object" && process.version !== undefined) {
     return `Node.js/${process.version.substr(1)} (${process.platform}; ${process.arch})`;
   }
 
@@ -33905,652 +35896,6 @@ function getUserAgent() {
 exports.getUserAgent = getUserAgent;
 //# sourceMappingURL=index.js.map
 
-
-/***/ }),
-
-/***/ 2048:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-Object.defineProperty(exports, "v1", ({
-  enumerable: true,
-  get: function () {
-    return _v.default;
-  }
-}));
-Object.defineProperty(exports, "v3", ({
-  enumerable: true,
-  get: function () {
-    return _v2.default;
-  }
-}));
-Object.defineProperty(exports, "v4", ({
-  enumerable: true,
-  get: function () {
-    return _v3.default;
-  }
-}));
-Object.defineProperty(exports, "v5", ({
-  enumerable: true,
-  get: function () {
-    return _v4.default;
-  }
-}));
-Object.defineProperty(exports, "NIL", ({
-  enumerable: true,
-  get: function () {
-    return _nil.default;
-  }
-}));
-Object.defineProperty(exports, "version", ({
-  enumerable: true,
-  get: function () {
-    return _version.default;
-  }
-}));
-Object.defineProperty(exports, "validate", ({
-  enumerable: true,
-  get: function () {
-    return _validate.default;
-  }
-}));
-Object.defineProperty(exports, "stringify", ({
-  enumerable: true,
-  get: function () {
-    return _stringify.default;
-  }
-}));
-Object.defineProperty(exports, "parse", ({
-  enumerable: true,
-  get: function () {
-    return _parse.default;
-  }
-}));
-
-var _v = _interopRequireDefault(__nccwpck_require__(6415));
-
-var _v2 = _interopRequireDefault(__nccwpck_require__(1697));
-
-var _v3 = _interopRequireDefault(__nccwpck_require__(4676));
-
-var _v4 = _interopRequireDefault(__nccwpck_require__(9771));
-
-var _nil = _interopRequireDefault(__nccwpck_require__(7723));
-
-var _version = _interopRequireDefault(__nccwpck_require__(5868));
-
-var _validate = _interopRequireDefault(__nccwpck_require__(6200));
-
-var _stringify = _interopRequireDefault(__nccwpck_require__(7597));
-
-var _parse = _interopRequireDefault(__nccwpck_require__(7267));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/***/ }),
-
-/***/ 216:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _crypto = _interopRequireDefault(__nccwpck_require__(6982));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function md5(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === 'string') {
-    bytes = Buffer.from(bytes, 'utf8');
-  }
-
-  return _crypto.default.createHash('md5').update(bytes).digest();
-}
-
-var _default = md5;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 7723:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-var _default = '00000000-0000-0000-0000-000000000000';
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 7267:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _validate = _interopRequireDefault(__nccwpck_require__(6200));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function parse(uuid) {
-  if (!(0, _validate.default)(uuid)) {
-    throw TypeError('Invalid UUID');
-  }
-
-  let v;
-  const arr = new Uint8Array(16); // Parse ########-....-....-....-............
-
-  arr[0] = (v = parseInt(uuid.slice(0, 8), 16)) >>> 24;
-  arr[1] = v >>> 16 & 0xff;
-  arr[2] = v >>> 8 & 0xff;
-  arr[3] = v & 0xff; // Parse ........-####-....-....-............
-
-  arr[4] = (v = parseInt(uuid.slice(9, 13), 16)) >>> 8;
-  arr[5] = v & 0xff; // Parse ........-....-####-....-............
-
-  arr[6] = (v = parseInt(uuid.slice(14, 18), 16)) >>> 8;
-  arr[7] = v & 0xff; // Parse ........-....-....-####-............
-
-  arr[8] = (v = parseInt(uuid.slice(19, 23), 16)) >>> 8;
-  arr[9] = v & 0xff; // Parse ........-....-....-....-############
-  // (Use "/" to avoid 32-bit truncation when bit-shifting high-order bytes)
-
-  arr[10] = (v = parseInt(uuid.slice(24, 36), 16)) / 0x10000000000 & 0xff;
-  arr[11] = v / 0x100000000 & 0xff;
-  arr[12] = v >>> 24 & 0xff;
-  arr[13] = v >>> 16 & 0xff;
-  arr[14] = v >>> 8 & 0xff;
-  arr[15] = v & 0xff;
-  return arr;
-}
-
-var _default = parse;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 7879:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-var _default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000)$/i;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 2973:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = rng;
-
-var _crypto = _interopRequireDefault(__nccwpck_require__(6982));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-const rnds8Pool = new Uint8Array(256); // # of random values to pre-allocate
-
-let poolPtr = rnds8Pool.length;
-
-function rng() {
-  if (poolPtr > rnds8Pool.length - 16) {
-    _crypto.default.randomFillSync(rnds8Pool);
-
-    poolPtr = 0;
-  }
-
-  return rnds8Pool.slice(poolPtr, poolPtr += 16);
-}
-
-/***/ }),
-
-/***/ 507:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _crypto = _interopRequireDefault(__nccwpck_require__(6982));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === 'string') {
-    bytes = Buffer.from(bytes, 'utf8');
-  }
-
-  return _crypto.default.createHash('sha1').update(bytes).digest();
-}
-
-var _default = sha1;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 7597:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _validate = _interopRequireDefault(__nccwpck_require__(6200));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/**
- * Convert array of 16 byte values to UUID string format of the form:
- * XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
- */
-const byteToHex = [];
-
-for (let i = 0; i < 256; ++i) {
-  byteToHex.push((i + 0x100).toString(16).substr(1));
-}
-
-function stringify(arr, offset = 0) {
-  // Note: Be careful editing this code!  It's been tuned for performance
-  // and works in ways you may not expect. See https://github.com/uuidjs/uuid/pull/434
-  const uuid = (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + '-' + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + '-' + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + '-' + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + '-' + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase(); // Consistency check for valid UUID.  If this throws, it's likely due to one
-  // of the following:
-  // - One or more input array values don't map to a hex octet (leading to
-  // "undefined" in the uuid)
-  // - Invalid input values for the RFC `version` or `variant` fields
-
-  if (!(0, _validate.default)(uuid)) {
-    throw TypeError('Stringified UUID is invalid');
-  }
-
-  return uuid;
-}
-
-var _default = stringify;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 6415:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _rng = _interopRequireDefault(__nccwpck_require__(2973));
-
-var _stringify = _interopRequireDefault(__nccwpck_require__(7597));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-// **`v1()` - Generate time-based UUID**
-//
-// Inspired by https://github.com/LiosK/UUID.js
-// and http://docs.python.org/library/uuid.html
-let _nodeId;
-
-let _clockseq; // Previous uuid creation time
-
-
-let _lastMSecs = 0;
-let _lastNSecs = 0; // See https://github.com/uuidjs/uuid for API details
-
-function v1(options, buf, offset) {
-  let i = buf && offset || 0;
-  const b = buf || new Array(16);
-  options = options || {};
-  let node = options.node || _nodeId;
-  let clockseq = options.clockseq !== undefined ? options.clockseq : _clockseq; // node and clockseq need to be initialized to random values if they're not
-  // specified.  We do this lazily to minimize issues related to insufficient
-  // system entropy.  See #189
-
-  if (node == null || clockseq == null) {
-    const seedBytes = options.random || (options.rng || _rng.default)();
-
-    if (node == null) {
-      // Per 4.5, create and 48-bit node id, (47 random bits + multicast bit = 1)
-      node = _nodeId = [seedBytes[0] | 0x01, seedBytes[1], seedBytes[2], seedBytes[3], seedBytes[4], seedBytes[5]];
-    }
-
-    if (clockseq == null) {
-      // Per 4.2.2, randomize (14 bit) clockseq
-      clockseq = _clockseq = (seedBytes[6] << 8 | seedBytes[7]) & 0x3fff;
-    }
-  } // UUID timestamps are 100 nano-second units since the Gregorian epoch,
-  // (1582-10-15 00:00).  JSNumbers aren't precise enough for this, so
-  // time is handled internally as 'msecs' (integer milliseconds) and 'nsecs'
-  // (100-nanoseconds offset from msecs) since unix epoch, 1970-01-01 00:00.
-
-
-  let msecs = options.msecs !== undefined ? options.msecs : Date.now(); // Per 4.2.1.2, use count of uuid's generated during the current clock
-  // cycle to simulate higher resolution clock
-
-  let nsecs = options.nsecs !== undefined ? options.nsecs : _lastNSecs + 1; // Time since last uuid creation (in msecs)
-
-  const dt = msecs - _lastMSecs + (nsecs - _lastNSecs) / 10000; // Per 4.2.1.2, Bump clockseq on clock regression
-
-  if (dt < 0 && options.clockseq === undefined) {
-    clockseq = clockseq + 1 & 0x3fff;
-  } // Reset nsecs if clock regresses (new clockseq) or we've moved onto a new
-  // time interval
-
-
-  if ((dt < 0 || msecs > _lastMSecs) && options.nsecs === undefined) {
-    nsecs = 0;
-  } // Per 4.2.1.2 Throw error if too many uuids are requested
-
-
-  if (nsecs >= 10000) {
-    throw new Error("uuid.v1(): Can't create more than 10M uuids/sec");
-  }
-
-  _lastMSecs = msecs;
-  _lastNSecs = nsecs;
-  _clockseq = clockseq; // Per 4.1.4 - Convert from unix epoch to Gregorian epoch
-
-  msecs += 12219292800000; // `time_low`
-
-  const tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
-  b[i++] = tl >>> 24 & 0xff;
-  b[i++] = tl >>> 16 & 0xff;
-  b[i++] = tl >>> 8 & 0xff;
-  b[i++] = tl & 0xff; // `time_mid`
-
-  const tmh = msecs / 0x100000000 * 10000 & 0xfffffff;
-  b[i++] = tmh >>> 8 & 0xff;
-  b[i++] = tmh & 0xff; // `time_high_and_version`
-
-  b[i++] = tmh >>> 24 & 0xf | 0x10; // include version
-
-  b[i++] = tmh >>> 16 & 0xff; // `clock_seq_hi_and_reserved` (Per 4.2.2 - include variant)
-
-  b[i++] = clockseq >>> 8 | 0x80; // `clock_seq_low`
-
-  b[i++] = clockseq & 0xff; // `node`
-
-  for (let n = 0; n < 6; ++n) {
-    b[i + n] = node[n];
-  }
-
-  return buf || (0, _stringify.default)(b);
-}
-
-var _default = v1;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 1697:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _v = _interopRequireDefault(__nccwpck_require__(2930));
-
-var _md = _interopRequireDefault(__nccwpck_require__(216));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-const v3 = (0, _v.default)('v3', 0x30, _md.default);
-var _default = v3;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 2930:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = _default;
-exports.URL = exports.DNS = void 0;
-
-var _stringify = _interopRequireDefault(__nccwpck_require__(7597));
-
-var _parse = _interopRequireDefault(__nccwpck_require__(7267));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str)); // UTF8 escape
-
-  const bytes = [];
-
-  for (let i = 0; i < str.length; ++i) {
-    bytes.push(str.charCodeAt(i));
-  }
-
-  return bytes;
-}
-
-const DNS = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-exports.DNS = DNS;
-const URL = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
-exports.URL = URL;
-
-function _default(name, version, hashfunc) {
-  function generateUUID(value, namespace, buf, offset) {
-    if (typeof value === 'string') {
-      value = stringToBytes(value);
-    }
-
-    if (typeof namespace === 'string') {
-      namespace = (0, _parse.default)(namespace);
-    }
-
-    if (namespace.length !== 16) {
-      throw TypeError('Namespace must be array-like (16 iterable integer values, 0-255)');
-    } // Compute hash of namespace and value, Per 4.3
-    // Future: Use spread syntax when supported on all platforms, e.g. `bytes =
-    // hashfunc([...namespace, ... value])`
-
-
-    let bytes = new Uint8Array(16 + value.length);
-    bytes.set(namespace);
-    bytes.set(value, namespace.length);
-    bytes = hashfunc(bytes);
-    bytes[6] = bytes[6] & 0x0f | version;
-    bytes[8] = bytes[8] & 0x3f | 0x80;
-
-    if (buf) {
-      offset = offset || 0;
-
-      for (let i = 0; i < 16; ++i) {
-        buf[offset + i] = bytes[i];
-      }
-
-      return buf;
-    }
-
-    return (0, _stringify.default)(bytes);
-  } // Function#name is not settable on some platforms (#270)
-
-
-  try {
-    generateUUID.name = name; // eslint-disable-next-line no-empty
-  } catch (err) {} // For CommonJS default export support
-
-
-  generateUUID.DNS = DNS;
-  generateUUID.URL = URL;
-  return generateUUID;
-}
-
-/***/ }),
-
-/***/ 4676:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _rng = _interopRequireDefault(__nccwpck_require__(2973));
-
-var _stringify = _interopRequireDefault(__nccwpck_require__(7597));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function v4(options, buf, offset) {
-  options = options || {};
-
-  const rnds = options.random || (options.rng || _rng.default)(); // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
-
-
-  rnds[6] = rnds[6] & 0x0f | 0x40;
-  rnds[8] = rnds[8] & 0x3f | 0x80; // Copy bytes to buffer, if provided
-
-  if (buf) {
-    offset = offset || 0;
-
-    for (let i = 0; i < 16; ++i) {
-      buf[offset + i] = rnds[i];
-    }
-
-    return buf;
-  }
-
-  return (0, _stringify.default)(rnds);
-}
-
-var _default = v4;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 9771:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _v = _interopRequireDefault(__nccwpck_require__(2930));
-
-var _sha = _interopRequireDefault(__nccwpck_require__(507));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-const v5 = (0, _v.default)('v5', 0x50, _sha.default);
-var _default = v5;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 6200:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _regex = _interopRequireDefault(__nccwpck_require__(7879));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function validate(uuid) {
-  return typeof uuid === 'string' && _regex.default.test(uuid);
-}
-
-var _default = validate;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 5868:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _validate = _interopRequireDefault(__nccwpck_require__(6200));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function version(uuid) {
-  if (!(0, _validate.default)(uuid)) {
-    throw TypeError('Invalid UUID');
-  }
-
-  return parseInt(uuid.substr(14, 1), 16);
-}
-
-var _default = version;
-exports["default"] = _default;
 
 /***/ }),
 
@@ -36563,14 +37908,6 @@ module.exports = eval("require")("encoding");
 
 /***/ }),
 
-/***/ 75:
-/***/ ((module) => {
-
-module.exports = eval("require")("supports-color");
-
-
-/***/ }),
-
 /***/ 2613:
 /***/ ((module) => {
 
@@ -36592,6 +37929,14 @@ module.exports = require("async_hooks");
 
 "use strict";
 module.exports = require("buffer");
+
+/***/ }),
+
+/***/ 5317:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("child_process");
 
 /***/ }),
 
@@ -36664,6 +38009,14 @@ module.exports = require("https");
 
 "use strict";
 module.exports = require("net");
+
+/***/ }),
+
+/***/ 7598:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:crypto");
 
 /***/ }),
 
@@ -36752,6 +38105,14 @@ module.exports = require("stream/web");
 
 "use strict";
 module.exports = require("string_decoder");
+
+/***/ }),
+
+/***/ 3557:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("timers");
 
 /***/ }),
 
@@ -38440,7 +39801,7 @@ module.exports = parseParams
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
-/*! Axios v1.13.2 Copyright (c) 2025 Matt Zabriskie and contributors */
+/*! Axios v1.13.4 Copyright (c) 2026 Matt Zabriskie and contributors */
 
 
 const FormData$1 = __nccwpck_require__(6454);
@@ -38733,10 +40094,11 @@ const trim = (str) => str.trim ?
  * If 'obj' is an Object callback will be called passing
  * the value, key, and complete object for each property.
  *
- * @param {Object|Array} obj The object to iterate
+ * @param {Object|Array<unknown>} obj The object to iterate
  * @param {Function} fn The callback to invoke for each item
  *
- * @param {Boolean} [allOwnKeys = false]
+ * @param {Object} [options]
+ * @param {Boolean} [options.allOwnKeys = false]
  * @returns {any}
  */
 function forEach(obj, fn, {allOwnKeys = false} = {}) {
@@ -38813,7 +40175,7 @@ const isContextDefined = (context) => !isUndefined(context) && context !== _glob
  * Example:
  *
  * ```js
- * var result = merge({foo: 123}, {foo: 456});
+ * const result = merge({foo: 123}, {foo: 456});
  * console.log(result.foo); // outputs 456
  * ```
  *
@@ -38850,15 +40212,26 @@ function merge(/* obj1, obj2, obj3, ... */) {
  * @param {Object} b The object to copy properties from
  * @param {Object} thisArg The object to bind function to
  *
- * @param {Boolean} [allOwnKeys]
+ * @param {Object} [options]
+ * @param {Boolean} [options.allOwnKeys]
  * @returns {Object} The resulting value of object a
  */
 const extend = (a, b, thisArg, {allOwnKeys}= {}) => {
   forEach(b, (val, key) => {
     if (thisArg && isFunction$1(val)) {
-      a[key] = bind(val, thisArg);
+      Object.defineProperty(a, key, {
+        value: bind(val, thisArg),
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
     } else {
-      a[key] = val;
+      Object.defineProperty(a, key, {
+        value: val,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
     }
   }, {allOwnKeys});
   return a;
@@ -38889,7 +40262,12 @@ const stripBOM = (content) => {
  */
 const inherits = (constructor, superConstructor, props, descriptors) => {
   constructor.prototype = Object.create(superConstructor.prototype, descriptors);
-  constructor.prototype.constructor = constructor;
+  Object.defineProperty(constructor.prototype, 'constructor', {
+    value: constructor,
+    writable: true,
+    enumerable: false,
+    configurable: true
+  });
   Object.defineProperty(constructor, 'super', {
     value: superConstructor.prototype
   });
@@ -39262,110 +40640,75 @@ const utils$1 = {
   isIterable
 };
 
-/**
- * Create an Error with the specified message, config, error code, request and response.
- *
- * @param {string} message The error message.
- * @param {string} [code] The error code (for example, 'ECONNABORTED').
- * @param {Object} [config] The config.
- * @param {Object} [request] The request.
- * @param {Object} [response] The response.
- *
- * @returns {Error} The created error.
- */
-function AxiosError(message, code, config, request, response) {
-  Error.call(this);
+class AxiosError extends Error {
+    static from(error, code, config, request, response, customProps) {
+        const axiosError = new AxiosError(error.message, code || error.code, config, request, response);
+        axiosError.cause = error;
+        axiosError.name = error.name;
+        customProps && Object.assign(axiosError, customProps);
+        return axiosError;
+    }
 
-  if (Error.captureStackTrace) {
-    Error.captureStackTrace(this, this.constructor);
-  } else {
-    this.stack = (new Error()).stack;
-  }
+    /**
+     * Create an Error with the specified message, config, error code, request and response.
+     *
+     * @param {string} message The error message.
+     * @param {string} [code] The error code (for example, 'ECONNABORTED').
+     * @param {Object} [config] The config.
+     * @param {Object} [request] The request.
+     * @param {Object} [response] The response.
+     *
+     * @returns {Error} The created error.
+     */
+    constructor(message, code, config, request, response) {
+        super(message);
+        this.name = 'AxiosError';
+        this.isAxiosError = true;
+        code && (this.code = code);
+        config && (this.config = config);
+        request && (this.request = request);
+        if (response) {
+            this.response = response;
+            this.status = response.status;
+        }
+    }
 
-  this.message = message;
-  this.name = 'AxiosError';
-  code && (this.code = code);
-  config && (this.config = config);
-  request && (this.request = request);
-  if (response) {
-    this.response = response;
-    this.status = response.status ? response.status : null;
-  }
+    toJSON() {
+        return {
+            // Standard
+            message: this.message,
+            name: this.name,
+            // Microsoft
+            description: this.description,
+            number: this.number,
+            // Mozilla
+            fileName: this.fileName,
+            lineNumber: this.lineNumber,
+            columnNumber: this.columnNumber,
+            stack: this.stack,
+            // Axios
+            config: utils$1.toJSONObject(this.config),
+            code: this.code,
+            status: this.status,
+        };
+    }
 }
 
-utils$1.inherits(AxiosError, Error, {
-  toJSON: function toJSON() {
-    return {
-      // Standard
-      message: this.message,
-      name: this.name,
-      // Microsoft
-      description: this.description,
-      number: this.number,
-      // Mozilla
-      fileName: this.fileName,
-      lineNumber: this.lineNumber,
-      columnNumber: this.columnNumber,
-      stack: this.stack,
-      // Axios
-      config: utils$1.toJSONObject(this.config),
-      code: this.code,
-      status: this.status
-    };
-  }
-});
+// This can be changed to static properties as soon as the parser options in .eslint.cjs are updated.
+AxiosError.ERR_BAD_OPTION_VALUE = 'ERR_BAD_OPTION_VALUE';
+AxiosError.ERR_BAD_OPTION = 'ERR_BAD_OPTION';
+AxiosError.ECONNABORTED = 'ECONNABORTED';
+AxiosError.ETIMEDOUT = 'ETIMEDOUT';
+AxiosError.ERR_NETWORK = 'ERR_NETWORK';
+AxiosError.ERR_FR_TOO_MANY_REDIRECTS = 'ERR_FR_TOO_MANY_REDIRECTS';
+AxiosError.ERR_DEPRECATED = 'ERR_DEPRECATED';
+AxiosError.ERR_BAD_RESPONSE = 'ERR_BAD_RESPONSE';
+AxiosError.ERR_BAD_REQUEST = 'ERR_BAD_REQUEST';
+AxiosError.ERR_CANCELED = 'ERR_CANCELED';
+AxiosError.ERR_NOT_SUPPORT = 'ERR_NOT_SUPPORT';
+AxiosError.ERR_INVALID_URL = 'ERR_INVALID_URL';
 
-const prototype$1 = AxiosError.prototype;
-const descriptors = {};
-
-[
-  'ERR_BAD_OPTION_VALUE',
-  'ERR_BAD_OPTION',
-  'ECONNABORTED',
-  'ETIMEDOUT',
-  'ERR_NETWORK',
-  'ERR_FR_TOO_MANY_REDIRECTS',
-  'ERR_DEPRECATED',
-  'ERR_BAD_RESPONSE',
-  'ERR_BAD_REQUEST',
-  'ERR_CANCELED',
-  'ERR_NOT_SUPPORT',
-  'ERR_INVALID_URL'
-// eslint-disable-next-line func-names
-].forEach(code => {
-  descriptors[code] = {value: code};
-});
-
-Object.defineProperties(AxiosError, descriptors);
-Object.defineProperty(prototype$1, 'isAxiosError', {value: true});
-
-// eslint-disable-next-line func-names
-AxiosError.from = (error, code, config, request, response, customProps) => {
-  const axiosError = Object.create(prototype$1);
-
-  utils$1.toFlatObject(error, axiosError, function filter(obj) {
-    return obj !== Error.prototype;
-  }, prop => {
-    return prop !== 'isAxiosError';
-  });
-
-  const msg = error && error.message ? error.message : 'Error';
-
-  // Prefer explicit code; otherwise copy the low-level error's code (e.g. ECONNREFUSED)
-  const errCode = code == null && error ? error.code : code;
-  AxiosError.call(axiosError, msg, errCode, config, request, response);
-
-  // Chain the original error on the standard field; non-enumerable to avoid JSON noise
-  if (error && axiosError.cause == null) {
-    Object.defineProperty(axiosError, 'cause', { value: error, configurable: true });
-  }
-
-  axiosError.name = (error && error.name) || 'Error';
-
-  customProps && Object.assign(axiosError, customProps);
-
-  return axiosError;
-};
+const AxiosError$1 = AxiosError;
 
 /**
  * Determines if the given thing is a array or js object.
@@ -39487,7 +40830,7 @@ function toFormData(obj, formData, options) {
     }
 
     if (!useBlob && utils$1.isBlob(value)) {
-      throw new AxiosError('Blob is not supported. Use a Buffer instead.');
+      throw new AxiosError$1('Blob is not supported. Use a Buffer instead.');
     }
 
     if (utils$1.isArrayBuffer(value) || utils$1.isTypedArray(value)) {
@@ -39661,29 +41004,26 @@ function encode(val) {
  * @returns {string} The formatted url
  */
 function buildURL(url, params, options) {
-  /*eslint no-param-reassign:0*/
   if (!params) {
     return url;
   }
-  
+
   const _encode = options && options.encode || encode;
 
-  if (utils$1.isFunction(options)) {
-    options = {
-      serialize: options
-    };
-  } 
+  const _options = utils$1.isFunction(options) ? {
+    serialize: options
+  } : options;
 
-  const serializeFn = options && options.serialize;
+  const serializeFn = _options && _options.serialize;
 
   let serializedParams;
 
   if (serializeFn) {
-    serializedParams = serializeFn(params, options);
+    serializedParams = serializeFn(params, _options);
   } else {
     serializedParams = utils$1.isURLSearchParams(params) ?
       params.toString() :
-      new AxiosURLSearchParams(params, options).toString(_encode);
+      new AxiosURLSearchParams(params, _options).toString(_encode);
   }
 
   if (serializedParams) {
@@ -39708,6 +41048,7 @@ class InterceptorManager {
    *
    * @param {Function} fulfilled The function to handle `then` for a `Promise`
    * @param {Function} rejected The function to handle `reject` for a `Promise`
+   * @param {Object} options The options for the interceptor, synchronous and runWhen
    *
    * @return {Number} An ID used to remove interceptor later
    */
@@ -40078,7 +41419,7 @@ const defaults = {
       } catch (e) {
         if (strictJSONParsing) {
           if (e.name === 'SyntaxError') {
-            throw AxiosError.from(e, AxiosError.ERR_BAD_RESPONSE, this, null, this.response);
+            throw AxiosError$1.from(e, AxiosError$1.ERR_BAD_RESPONSE, this, null, this.response);
           }
           throw e;
         }
@@ -40512,24 +41853,24 @@ function isCancel(value) {
   return !!(value && value.__CANCEL__);
 }
 
-/**
- * A `CanceledError` is an object that is thrown when an operation is canceled.
- *
- * @param {string=} message The message.
- * @param {Object=} config The config.
- * @param {Object=} request The request.
- *
- * @returns {CanceledError} The created error.
- */
-function CanceledError(message, config, request) {
-  // eslint-disable-next-line no-eq-null,eqeqeq
-  AxiosError.call(this, message == null ? 'canceled' : message, AxiosError.ERR_CANCELED, config, request);
-  this.name = 'CanceledError';
+class CanceledError extends AxiosError$1 {
+  /**
+   * A `CanceledError` is an object that is thrown when an operation is canceled.
+   *
+   * @param {string=} message The message.
+   * @param {Object=} config The config.
+   * @param {Object=} request The request.
+   *
+   * @returns {CanceledError} The created error.
+   */
+  constructor(message, config, request) {
+    super(message == null ? 'canceled' : message, AxiosError$1.ERR_CANCELED, config, request);
+    this.name = 'CanceledError';
+    this.__CANCEL__ = true;
+  }
 }
 
-utils$1.inherits(CanceledError, AxiosError, {
-  __CANCEL__: true
-});
+const CanceledError$1 = CanceledError;
 
 /**
  * Resolve or reject a Promise based on response status.
@@ -40545,9 +41886,9 @@ function settle(resolve, reject, response) {
   if (!response.status || !validateStatus || validateStatus(response.status)) {
     resolve(response);
   } else {
-    reject(new AxiosError(
+    reject(new AxiosError$1(
       'Request failed with status code ' + response.status,
-      [AxiosError.ERR_BAD_REQUEST, AxiosError.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4],
+      [AxiosError$1.ERR_BAD_REQUEST, AxiosError$1.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4],
       response.config,
       response.request,
       response
@@ -40601,7 +41942,7 @@ function buildFullPath(baseURL, requestedURL, allowAbsoluteUrls) {
   return requestedURL;
 }
 
-const VERSION = "1.13.2";
+const VERSION = "1.13.4";
 
 function parseProtocol(url) {
   const match = /^([-+\w]{1,25})(:?\/\/|:)/.exec(url);
@@ -40634,7 +41975,7 @@ function fromDataURI(uri, asBlob, options) {
     const match = DATA_URL_PATTERN.exec(uri);
 
     if (!match) {
-      throw new AxiosError('Invalid URL', AxiosError.ERR_INVALID_URL);
+      throw new AxiosError$1('Invalid URL', AxiosError$1.ERR_INVALID_URL);
     }
 
     const mime = match[1];
@@ -40644,7 +41985,7 @@ function fromDataURI(uri, asBlob, options) {
 
     if (asBlob) {
       if (!_Blob) {
-        throw new AxiosError('Blob is not supported', AxiosError.ERR_NOT_SUPPORT);
+        throw new AxiosError$1('Blob is not supported', AxiosError$1.ERR_NOT_SUPPORT);
       }
 
       return new _Blob([buffer], {type: mime});
@@ -40653,7 +41994,7 @@ function fromDataURI(uri, asBlob, options) {
     return buffer;
   }
 
-  throw new AxiosError('Unsupported protocol ' + protocol, AxiosError.ERR_NOT_SUPPORT);
+  throw new AxiosError$1('Unsupported protocol ' + protocol, AxiosError$1.ERR_NOT_SUPPORT);
 }
 
 const kInternals = Symbol('internals');
@@ -41335,12 +42676,16 @@ function setProxy(options, configProxy, location) {
 
     if (proxy.auth) {
       // Support proxy auth object form
-      if (proxy.auth.username || proxy.auth.password) {
+      const validProxyAuth = Boolean(proxy.auth.username || proxy.auth.password);
+
+      if (validProxyAuth) {
         proxy.auth = (proxy.auth.username || '') + ':' + (proxy.auth.password || '');
+      } else if (typeof proxy.auth === 'object') {
+        throw new AxiosError$1('Invalid proxy authorization', AxiosError$1.ERR_BAD_OPTION, { proxy });
       }
-      const base64 = Buffer
-        .from(proxy.auth, 'utf8')
-        .toString('base64');
+
+      const base64 = Buffer.from(proxy.auth, 'utf8').toString('base64');
+
       options.headers['Proxy-Authorization'] = 'Basic ' + base64;
     }
 
@@ -41406,7 +42751,8 @@ const buildAddressEntry = (address, family) => resolveFamily(utils$1.isObject(ad
 
 const http2Transport = {
   request(options, cb) {
-      const authority = options.protocol + '//' + options.hostname + ':' + (options.port || 80);
+      const authority = options.protocol + '//' + options.hostname + ':' + (options.port ||(options.protocol === 'https:' ? 443 : 80));
+
 
       const {http2Options, headers} = options;
 
@@ -41493,7 +42839,7 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
 
     function abort(reason) {
       try {
-        abortEmitter.emit('abort', !reason || reason.type ? new CanceledError(null, config, req) : reason);
+        abortEmitter.emit('abort', !reason || reason.type ? new CanceledError$1(null, config, req) : reason);
       } catch(err) {
         console.warn('emit error', err);
       }
@@ -41558,9 +42904,9 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
         const estimated = estimateDataURLDecodedBytes(dataUrl);
 
         if (estimated > config.maxContentLength) {
-          return reject(new AxiosError(
+          return reject(new AxiosError$1(
             'maxContentLength size of ' + config.maxContentLength + ' exceeded',
-            AxiosError.ERR_BAD_RESPONSE,
+            AxiosError$1.ERR_BAD_RESPONSE,
             config
           ));
         }
@@ -41582,7 +42928,7 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
           Blob: config.env && config.env.Blob
         });
       } catch (err) {
-        throw AxiosError.from(err, AxiosError.ERR_BAD_REQUEST, config);
+        throw AxiosError$1.from(err, AxiosError$1.ERR_BAD_REQUEST, config);
       }
 
       if (responseType === 'text') {
@@ -41605,9 +42951,9 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
     }
 
     if (supportedProtocols.indexOf(protocol) === -1) {
-      return reject(new AxiosError(
+      return reject(new AxiosError$1(
         'Unsupported protocol ' + protocol,
-        AxiosError.ERR_BAD_REQUEST,
+        AxiosError$1.ERR_BAD_REQUEST,
         config
       ));
     }
@@ -41657,9 +43003,9 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
       } else if (utils$1.isString(data)) {
         data = Buffer.from(data, 'utf-8');
       } else {
-        return reject(new AxiosError(
+        return reject(new AxiosError$1(
           'Data after transformation must be a string, an ArrayBuffer, a Buffer, or a Stream',
-          AxiosError.ERR_BAD_REQUEST,
+          AxiosError$1.ERR_BAD_REQUEST,
           config
         ));
       }
@@ -41668,9 +43014,9 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
       headers.setContentLength(data.length, false);
 
       if (config.maxBodyLength > -1 && data.length > config.maxBodyLength) {
-        return reject(new AxiosError(
+        return reject(new AxiosError$1(
           'Request body larger than maxBodyLength limit',
-          AxiosError.ERR_BAD_REQUEST,
+          AxiosError$1.ERR_BAD_REQUEST,
           config
         ));
       }
@@ -41892,8 +43238,8 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
             // stream.destroy() emit aborted event before calling reject() on Node.js v16
             rejected = true;
             responseStream.destroy();
-            abort(new AxiosError('maxContentLength size of ' + config.maxContentLength + ' exceeded',
-              AxiosError.ERR_BAD_RESPONSE, config, lastRequest));
+            abort(new AxiosError$1('maxContentLength size of ' + config.maxContentLength + ' exceeded',
+              AxiosError$1.ERR_BAD_RESPONSE, config, lastRequest));
           }
         });
 
@@ -41902,9 +43248,9 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
             return;
           }
 
-          const err = new AxiosError(
+          const err = new AxiosError$1(
             'stream has been aborted',
-            AxiosError.ERR_BAD_RESPONSE,
+            AxiosError$1.ERR_BAD_RESPONSE,
             config,
             lastRequest
           );
@@ -41914,7 +43260,7 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
 
         responseStream.on('error', function handleStreamError(err) {
           if (req.destroyed) return;
-          reject(AxiosError.from(err, null, config, lastRequest));
+          reject(AxiosError$1.from(err, null, config, lastRequest));
         });
 
         responseStream.on('end', function handleStreamEnd() {
@@ -41928,7 +43274,7 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
             }
             response.data = responseData;
           } catch (err) {
-            return reject(AxiosError.from(err, null, config, response.request, response));
+            return reject(AxiosError$1.from(err, null, config, response.request, response));
           }
           settle(resolve, reject, response);
         });
@@ -41952,9 +43298,7 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
 
     // Handle errors
     req.on('error', function handleRequestError(err) {
-      // @todo remove
-      // if (req.aborted && err.code !== AxiosError.ERR_FR_TOO_MANY_REDIRECTS) return;
-      reject(AxiosError.from(err, null, config, req));
+      reject(AxiosError$1.from(err, null, config, req));
     });
 
     // set tcp keep alive to prevent drop connection by peer
@@ -41969,9 +43313,9 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
       const timeout = parseInt(config.timeout, 10);
 
       if (Number.isNaN(timeout)) {
-        abort(new AxiosError(
+        abort(new AxiosError$1(
           'error trying to parse `config.timeout` to int',
-          AxiosError.ERR_BAD_OPTION_VALUE,
+          AxiosError$1.ERR_BAD_OPTION_VALUE,
           config,
           req
         ));
@@ -41991,9 +43335,9 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
         if (config.timeoutErrorMessage) {
           timeoutErrorMessage = config.timeoutErrorMessage;
         }
-        abort(new AxiosError(
+        abort(new AxiosError$1(
           timeoutErrorMessage,
-          transitional.clarifyTimeoutError ? AxiosError.ETIMEDOUT : AxiosError.ECONNABORTED,
+          transitional.clarifyTimeoutError ? AxiosError$1.ETIMEDOUT : AxiosError$1.ECONNABORTED,
           config,
           req
         ));
@@ -42020,7 +43364,7 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
 
       data.on('close', () => {
         if (!ended && !errored) {
-          abort(new CanceledError('Request stream has been aborted', config, req));
+          abort(new CanceledError$1('Request stream has been aborted', config, req));
         }
       });
 
@@ -42113,7 +43457,7 @@ function mergeConfig(config1, config2) {
 
   function getMergedValue(target, source, prop, caseless) {
     if (utils$1.isPlainObject(target) && utils$1.isPlainObject(source)) {
-      return utils$1.merge.call({caseless}, target, source);
+      return utils$1.merge.call({ caseless }, target, source);
     } else if (utils$1.isPlainObject(source)) {
       return utils$1.merge({}, source);
     } else if (utils$1.isArray(source)) {
@@ -42122,7 +43466,6 @@ function mergeConfig(config1, config2) {
     return source;
   }
 
-  // eslint-disable-next-line consistent-return
   function mergeDeepProperties(a, b, prop, caseless) {
     if (!utils$1.isUndefined(b)) {
       return getMergedValue(a, b, prop, caseless);
@@ -42188,7 +43531,7 @@ function mergeConfig(config1, config2) {
     headers: (a, b, prop) => mergeDeepProperties(headersToObject(a), headersToObject(b), prop, true)
   };
 
-  utils$1.forEach(Object.keys({...config1, ...config2}), function computeConfigValue(prop) {
+  utils$1.forEach(Object.keys({ ...config1, ...config2 }), function computeConfigValue(prop) {
     const merge = mergeMap[prop] || mergeDeepProperties;
     const configValue = merge(config1[prop], config2[prop], prop);
     (utils$1.isUndefined(configValue) && merge !== mergeDirectKeys) || (config[prop] = configValue);
@@ -42337,7 +43680,7 @@ const xhrAdapter = isXHRAdapterSupported && function (config) {
         return;
       }
 
-      reject(new AxiosError('Request aborted', AxiosError.ECONNABORTED, config, request));
+      reject(new AxiosError$1('Request aborted', AxiosError$1.ECONNABORTED, config, request));
 
       // Clean up request
       request = null;
@@ -42349,7 +43692,7 @@ const xhrAdapter = isXHRAdapterSupported && function (config) {
        // (message may be empty; when present, surface it)
        // See https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/error_event
        const msg = event && event.message ? event.message : 'Network Error';
-       const err = new AxiosError(msg, AxiosError.ERR_NETWORK, config, request);
+       const err = new AxiosError$1(msg, AxiosError$1.ERR_NETWORK, config, request);
        // attach the underlying event for consumers who want details
        err.event = event || null;
        reject(err);
@@ -42363,9 +43706,9 @@ const xhrAdapter = isXHRAdapterSupported && function (config) {
       if (_config.timeoutErrorMessage) {
         timeoutErrorMessage = _config.timeoutErrorMessage;
       }
-      reject(new AxiosError(
+      reject(new AxiosError$1(
         timeoutErrorMessage,
-        transitional.clarifyTimeoutError ? AxiosError.ETIMEDOUT : AxiosError.ECONNABORTED,
+        transitional.clarifyTimeoutError ? AxiosError$1.ETIMEDOUT : AxiosError$1.ECONNABORTED,
         config,
         request));
 
@@ -42415,7 +43758,7 @@ const xhrAdapter = isXHRAdapterSupported && function (config) {
         if (!request) {
           return;
         }
-        reject(!cancel || cancel.type ? new CanceledError(null, config, request) : cancel);
+        reject(!cancel || cancel.type ? new CanceledError$1(null, config, request) : cancel);
         request.abort();
         request = null;
       };
@@ -42429,7 +43772,7 @@ const xhrAdapter = isXHRAdapterSupported && function (config) {
     const protocol = parseProtocol(_config.url);
 
     if (protocol && platform.protocols.indexOf(protocol) === -1) {
-      reject(new AxiosError('Unsupported protocol ' + protocol + ':', AxiosError.ERR_BAD_REQUEST, config));
+      reject(new AxiosError$1('Unsupported protocol ' + protocol + ':', AxiosError$1.ERR_BAD_REQUEST, config));
       return;
     }
 
@@ -42452,13 +43795,13 @@ const composeSignals = (signals, timeout) => {
         aborted = true;
         unsubscribe();
         const err = reason instanceof Error ? reason : this.reason;
-        controller.abort(err instanceof AxiosError ? err : new CanceledError(err instanceof Error ? err.message : err));
+        controller.abort(err instanceof AxiosError$1 ? err : new CanceledError$1(err instanceof Error ? err.message : err));
       }
     };
 
     let timer = timeout && setTimeout(() => {
       timer = null;
-      onabort(new AxiosError(`timeout ${timeout} of ms exceeded`, AxiosError.ETIMEDOUT));
+      onabort(new AxiosError$1(`timeout of ${timeout}ms exceeded`, AxiosError$1.ETIMEDOUT));
     }, timeout);
 
     const unsubscribe = () => {
@@ -42644,7 +43987,7 @@ const factory = (env) => {
           return method.call(res);
         }
 
-        throw new AxiosError(`Response type '${type}' is not supported`, AxiosError.ERR_NOT_SUPPORT, config);
+        throw new AxiosError$1(`Response type '${type}' is not supported`, AxiosError$1.ERR_NOT_SUPPORT, config);
       });
     });
   })());
@@ -42810,14 +44153,14 @@ const factory = (env) => {
 
       if (err && err.name === 'TypeError' && /Load failed|fetch/i.test(err.message)) {
         throw Object.assign(
-          new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, request),
+          new AxiosError$1('Network Error', AxiosError$1.ERR_NETWORK, config, request),
           {
             cause: err.cause || err
           }
         )
       }
 
-      throw AxiosError.from(err, err && err.code, config, request);
+      throw AxiosError$1.from(err, err && err.code, config, request);
     }
   }
 };
@@ -42922,7 +44265,7 @@ function getAdapter(adapters, config) {
       adapter = knownAdapters[(id = String(nameOrAdapter)).toLowerCase()];
 
       if (adapter === undefined) {
-        throw new AxiosError(`Unknown adapter '${id}'`);
+        throw new AxiosError$1(`Unknown adapter '${id}'`);
       }
     }
 
@@ -42943,7 +44286,7 @@ function getAdapter(adapters, config) {
       (reasons.length > 1 ? 'since :\n' + reasons.map(renderReason).join('\n') : ' ' + renderReason(reasons[0])) :
       'as no adapter specified';
 
-    throw new AxiosError(
+    throw new AxiosError$1(
       `There is no suitable adapter to dispatch the request ` + s,
       'ERR_NOT_SUPPORT'
     );
@@ -42982,7 +44325,7 @@ function throwIfCancellationRequested(config) {
   }
 
   if (config.signal && config.signal.aborted) {
-    throw new CanceledError(null, config);
+    throw new CanceledError$1(null, config);
   }
 }
 
@@ -43070,9 +44413,9 @@ validators$1.transitional = function transitional(validator, version, message) {
   // eslint-disable-next-line func-names
   return (value, opt, opts) => {
     if (validator === false) {
-      throw new AxiosError(
+      throw new AxiosError$1(
         formatMessage(opt, ' has been removed' + (version ? ' in ' + version : '')),
-        AxiosError.ERR_DEPRECATED
+        AxiosError$1.ERR_DEPRECATED
       );
     }
 
@@ -43111,7 +44454,7 @@ validators$1.spelling = function spelling(correctSpelling) {
 
 function assertOptions(options, schema, allowUnknown) {
   if (typeof options !== 'object') {
-    throw new AxiosError('options must be an object', AxiosError.ERR_BAD_OPTION_VALUE);
+    throw new AxiosError$1('options must be an object', AxiosError$1.ERR_BAD_OPTION_VALUE);
   }
   const keys = Object.keys(options);
   let i = keys.length;
@@ -43122,12 +44465,12 @@ function assertOptions(options, schema, allowUnknown) {
       const value = options[opt];
       const result = value === undefined || validator(value, opt, options);
       if (result !== true) {
-        throw new AxiosError('option ' + opt + ' must be ' + result, AxiosError.ERR_BAD_OPTION_VALUE);
+        throw new AxiosError$1('option ' + opt + ' must be ' + result, AxiosError$1.ERR_BAD_OPTION_VALUE);
       }
       continue;
     }
     if (allowUnknown !== true) {
-      throw new AxiosError('Unknown option ' + opt, AxiosError.ERR_BAD_OPTION);
+      throw new AxiosError$1('Unknown option ' + opt, AxiosError$1.ERR_BAD_OPTION);
     }
   }
 }
@@ -43420,7 +44763,7 @@ class CancelToken {
         return;
       }
 
-      token.reason = new CanceledError(message, config, request);
+      token.reason = new CanceledError$1(message, config, request);
       resolvePromise(token.reason);
     });
   }
@@ -43504,7 +44847,7 @@ const CancelToken$1 = CancelToken;
  *
  *  ```js
  *  function f(x, y, z) {}
- *  var args = [1, 2, 3];
+ *  const args = [1, 2, 3];
  *  f.apply(null, args);
  *  ```
  *
@@ -43645,14 +44988,14 @@ const axios = createInstance(defaults$1);
 axios.Axios = Axios$1;
 
 // Expose Cancel & CancelToken
-axios.CanceledError = CanceledError;
+axios.CanceledError = CanceledError$1;
 axios.CancelToken = CancelToken$1;
 axios.isCancel = isCancel;
 axios.VERSION = VERSION;
 axios.toFormData = toFormData;
 
 // Expose AxiosError class
-axios.AxiosError = AxiosError;
+axios.AxiosError = AxiosError$1;
 
 // alias for CanceledError for backward compatibility
 axios.Cancel = axios.CanceledError;
@@ -43741,6 +45084,1245 @@ module.exports = /*#__PURE__*/JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45
 /******/ 	
 /************************************************************************/
 var __webpack_exports__ = {};
+// const core = require('@actions/core');
+// const github = require('@actions/github');
+// const axios = require('axios');
+
+// const STALE_PR_THRESHOLD_DAYS = 60;
+// const CLOSED_PR_GRACE_PERIOD_MS = 12 * 60 * 60 * 1000;
+// const CLOSED_PR_LABEL = 'pr-closed-pending-unassign';
+// const CLOSED_PR_LABEL_COLOR = 'ff9800';
+// const CLOSED_PR_COMMENT_MARKER = '<!-- closed-pr-warning -->';
+
+// async function hasOpenLinkedPR(
+//     octokit,
+//     owner,
+//     repoName,
+//     issueNumber,
+//     returnDetails = false
+// ) {
+//     const openPRs = [];
+//     const currentRepo = `${owner}/${repoName}`;
+//     const seen = new Set();
+
+//     const timelineEvents = await octokit.paginate(
+//         octokit.issues.listEventsForTimeline,
+//         {
+//             owner,
+//             repo: repoName,
+//             issue_number: issueNumber,
+//             per_page: 100,
+//             headers: {
+//                 accept: 'application/vnd.github+json',
+//                 'X-GitHub-Api-Version': '2022-11-28'
+//             }
+//         }
+//     );
+
+//     for (const e of timelineEvents) {
+//         if (e.event !== "cross-referenced" || !e.source?.issue?.pull_request) {
+//             continue;
+//         }
+
+//         const prNumber = e.source?.issue?.number;
+
+//         // Use the source repository from the event or assume current repo
+//         const sourceRepo = e.source?.repository?.full_name || currentRepo;
+
+//         // Only skip if explicitly from different repo
+//         if (sourceRepo !== currentRepo) continue;
+
+//         if (!prNumber || seen.has(prNumber)) continue;
+//         seen.add(prNumber);
+
+//         try {
+//             const pr = await octokit.pulls.get({
+//                 owner,
+//                 repo: repoName,
+//                 pull_number: prNumber
+//             });
+
+//             if (pr.data.state === "open") {
+//                 if (returnDetails) {
+//                     openPRs.push(pr.data);
+//                 } else {
+//                     return true; // short-circuit for boolean use case
+//                 }
+//             }
+//         } catch (err) {
+//             // 404 = PR deleted; safe to skip. 
+//             const errInfo = err?.status || err?.message || 'unknown error';
+//             if (err.status === 404) {
+//                 console.log(`Skipping deleted PR #${prNumber}`);
+//             } else {
+//                 console.error(`Error fetching PR #${prNumber}, skipping: ${errInfo}`);
+//             }
+//             continue;
+//         }
+//     }
+
+//     return returnDetails ? openPRs : false;
+// }
+
+// async function getLinkedPRsWithDetails(octokit, owner, repoName, issueNumber) {
+//     const allPRs = { open: [], closed: [], error: false };
+//     const currentRepo = `${owner}/${repoName}`;
+//     const seen = new Set();
+
+//     const timelineEvents = await octokit.paginate(
+//         octokit.issues.listEventsForTimeline,
+//         {
+//             owner,
+//             repo: repoName,
+//             issue_number: issueNumber,
+//             per_page: 100,
+//             headers: {
+//                 accept: 'application/vnd.github+json',
+//                 'X-GitHub-Api-Version': '2022-11-28'
+//             }
+//         }
+//     );
+
+//     for (const e of timelineEvents) {
+//         if (e.event !== "cross-referenced" || !e.source?.issue?.pull_request) {
+//             continue;
+//         }
+
+//         const prNumber = e.source?.issue?.number;
+//         const sourceRepo = e.source?.repository?.full_name || currentRepo;
+
+//         // Only process PRs from the same repository
+//         if (sourceRepo !== currentRepo) continue;
+//         if (!prNumber || seen.has(prNumber)) continue;
+//         seen.add(prNumber);
+
+//         try {
+//             const pr = await octokit.pulls.get({
+//                 owner,
+//                 repo: repoName,
+//                 pull_number: prNumber
+//             });
+
+//             const prData = pr.data;
+//             const daysSinceUpdated = Math.floor((new Date() - new Date(prData.updated_at)) / (1000 * 3600 * 24));
+
+//             const prInfo = {
+//                 number: prData.number,
+//                 state: prData.state,
+//                 author: prData.user?.login || '[deleted user]',
+//                 created_at: prData.created_at,
+//                 updated_at: prData.updated_at,
+//                 age: daysSinceUpdated,
+//                 url: prData.html_url,
+//                 merged: prData.merged || false
+//             };
+
+//             if (prData.state === "open") {
+//                 allPRs.open.push(prInfo);
+//             } else {
+//                 allPRs.closed.push(prInfo);
+//             }
+//         } catch (err) {
+//             if (err.status !== 404) {
+//                 console.error(`Error fetching PR #${prNumber}:`, err?.status || err?.message);
+//                 allPRs.error = true;
+//             }
+//             continue;
+//         }
+//     }
+
+//     return allPRs;
+// }
+
+// async function ensureClosedPRLabel(octokit, owner, repoName) {
+//     try {
+//         await octokit.rest.issues.getLabel({ owner, repo: repoName, name: CLOSED_PR_LABEL });
+//     } catch (e) {
+//         if (e.status === 404) {
+//             await octokit.rest.issues.createLabel({
+//                 owner,
+//                 repo: repoName,
+//                 name: CLOSED_PR_LABEL,
+//                 color: CLOSED_PR_LABEL_COLOR,
+//                 description: 'PR was closed, assignee will be removed after 12 hours'
+//             });
+//             console.log(`Created label: ${CLOSED_PR_LABEL}`);
+//         } else {
+//             console.log(`Failed to get label ${CLOSED_PR_LABEL} for ${owner}/${repoName}: ${e.message || e.stack}`);
+//             throw e;
+//         }
+//     }
+// }
+
+// function extractLinkedIssuesFromPRBody(prBody, currentOwner, currentRepo) {
+//     if (!prBody) return [];
+//     const regex = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)(?:\s*:\s*|\s+)(?:#(\d+)|https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/issues\/(\d+))/gi;
+//     const matches = [...prBody.matchAll(regex)];
+//     const issues = [];
+    
+//     for (const match of matches) {
+//         if (match[1]) {
+//             issues.push(parseInt(match[1]));
+//         } else if (match[2] && match[3] && match[4]) {
+//             const urlOwner = match[2];
+//             const urlRepo = match[3];
+//             const issueNumber = parseInt(match[4]);
+            
+//             if (urlOwner === currentOwner && urlRepo === currentRepo) {
+//                 issues.push(issueNumber);
+//             }
+//         }
+//     }
+    
+//     return [...new Set(issues)];
+// }
+
+// async function findLinkedIssuesFromTimeline(octokit, owner, repoName, prNumber) {
+//     try {
+//         const timeline = await octokit.paginate(octokit.rest.issues.listEventsForTimeline, {
+//             owner,
+//             repo: repoName,
+//             issue_number: prNumber,
+//             per_page: 100
+//         });
+        
+//         const linked = new Set();
+//         for (const event of timeline) {
+//             if (event.event === 'connected' && event.issue && !event.issue.pull_request) {
+//                 linked.add(event.issue.number);
+//             }
+//         }
+//         return Array.from(linked);
+//     } catch (e) {
+//         console.log(`Failed to get timeline for PR #${prNumber}: ${e.message}`);
+//         return [];
+//     }
+// }
+
+// async function handleClosedPR(octokit, owner, repoName, pr, attribution) {
+//     if (pr.merged) {
+//         console.log(`PR #${pr.number} was merged, no action needed`);
+//         return;
+//     }
+    
+//     console.log(`PR #${pr.number} was closed (not merged) by @${pr.user.login}`);
+    
+//     await ensureClosedPRLabel(octokit, owner, repoName);
+    
+//     const bodyIssues = extractLinkedIssuesFromPRBody(pr.body, owner, repoName);
+//     const timelineIssues = await findLinkedIssuesFromTimeline(octokit, owner, repoName, pr.number);
+//     const linkedIssues = [...new Set([...bodyIssues, ...timelineIssues])];
+    
+//     if (linkedIssues.length === 0) {
+//         console.log('No linked issues found');
+//         return;
+//     }
+    
+//     console.log(`Found linked issues: ${linkedIssues.join(', ')}`);
+    
+//     for (const issueNumber of linkedIssues) {
+//         try {
+//             const issue = await octokit.rest.issues.get({ owner, repo: repoName, issue_number: issueNumber });
+            
+//             if (issue.data.state !== 'open') {
+//                 console.log(`Issue #${issueNumber}: closed, skipping`);
+//                 continue;
+//             }
+            
+//             const isAssigned = issue.data.assignees.some(a => a.login === pr.user.login);
+//             if (!isAssigned) {
+//                 console.log(`Issue #${issueNumber}: PR author not assigned, skipping`);
+//                 continue;
+//             }
+            
+//             await octokit.rest.issues.addLabels({
+//                 owner,
+//                 repo: repoName,
+//                 issue_number: issueNumber,
+//                 labels: [CLOSED_PR_LABEL]
+//             });
+            
+//             const timestamp = new Date().toISOString();
+//             const commentBody = `${CLOSED_PR_COMMENT_MARKER}\n` +
+//                 `PR Closed - Unassignment Pending\n\n` +
+//                 `Hi @${pr.user.login},\n\n` +
+//                 `Your PR #${pr.number} linked to this issue was closed.\n\n` +
+//                 `You have 12 hours to open a new PR for this issue, or you'll be automatically unassigned.\n\n` +
+//                 `If you're still working on this, simply open a new PR and this warning will be cancelled.\n\n` +
+//                 `Timestamp: ${timestamp}${attribution}`;
+            
+//             await octokit.rest.issues.createComment({
+//                 owner,
+//                 repo: repoName,
+//                 issue_number: issueNumber,
+//                 body: commentBody
+//             });
+            
+//             console.log(`Issue #${issueNumber}: Added label and warning comment`);
+//         } catch (e) {
+//             console.log(`Failed to process issue #${issueNumber}: ${e.message}`);
+//         }
+//     }
+// }
+
+// async function handleOpenedPR(octokit, owner, repoName, pr, attribution) {
+//     console.log(`PR #${pr.number} was opened by @${pr.user.login}`);
+    
+//     const bodyIssues = extractLinkedIssuesFromPRBody(pr.body, owner, repoName);
+//     const timelineIssues = await findLinkedIssuesFromTimeline(octokit, owner, repoName, pr.number);
+//     const linkedIssues = [...new Set([...bodyIssues, ...timelineIssues])];
+    
+//     if (linkedIssues.length === 0) {
+//         console.log('No linked issues found');
+//         return;
+//     }
+    
+//     console.log(`Found linked issues: ${linkedIssues.join(', ')}`);
+    
+//     for (const issueNumber of linkedIssues) {
+//         try {
+//             const issue = await octokit.rest.issues.get({ owner, repo: repoName, issue_number: issueNumber });
+            
+//             if (issue.data.state !== 'open') {
+//                 console.log(`Issue #${issueNumber}: closed, skipping`);
+//                 continue;
+//             }
+            
+//             const hasLabel = issue.data.labels.some(l => l.name === CLOSED_PR_LABEL);
+//             if (!hasLabel) {
+//                 console.log(`Issue #${issueNumber}: No pending label, skipping`);
+//                 continue;
+//             }
+            
+//             try {
+//                 await octokit.rest.issues.removeLabel({
+//                     owner,
+//                     repo: repoName,
+//                     issue_number: issueNumber,
+//                     name: CLOSED_PR_LABEL
+//                 });
+//             } catch (labelError) {
+//                 if (labelError.status !== 404 && labelError.statusCode !== 404) {
+//                     throw labelError;
+//                 }
+//                 console.log(`Label already removed from issue #${issueNumber}`);
+//             }
+            
+//             const comments = await octokit.paginate(octokit.rest.issues.listComments, {
+//                 owner,
+//                 repo: repoName,
+//                 issue_number: issueNumber,
+//                 per_page: 100
+//             });
+            
+//             const sortedComments = comments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+//             const warningComment = sortedComments.find(c => c.body?.includes(CLOSED_PR_COMMENT_MARKER));
+//             if (warningComment) {
+//                 await octokit.rest.issues.deleteComment({
+//                     owner,
+//                     repo: repoName,
+//                     comment_id: warningComment.id
+//                 });
+//             }
+            
+//             await octokit.rest.issues.createComment({
+//                 owner,
+//                 repo: repoName,
+//                 issue_number: issueNumber,
+//                 body: `New PR #${pr.number} opened. Unassignment cancelled.${attribution}`
+//             });
+            
+//             console.log(`Issue #${issueNumber}: Removed label and warning, posted success comment`);
+//         } catch (e) {
+//             console.log(`Failed to process issue #${issueNumber}: ${e.message}`);
+//         }
+//     }
+// }
+
+// async function enforceClosedPRGracePeriod(octokit, owner, repoName, attribution) {
+//     console.log('Running closed PR grace period enforcement...');
+    
+//     const issues = await octokit.paginate(octokit.rest.issues.listForRepo, {
+//         owner,
+//         repo: repoName,
+//         state: 'open',
+//         labels: CLOSED_PR_LABEL,
+//         per_page: 100
+//     });
+    
+//     console.log(`Found ${issues.length} issues with pending unassignment`);
+    
+//     const now = Date.now();
+    
+//     for (const issue of issues) {
+//         try {
+//             console.log(`Processing issue #${issue.number}: ${issue.title}`);
+            
+//             const comments = await octokit.paginate(octokit.rest.issues.listComments, {
+//                 owner,
+//                 repo: repoName,
+//                 issue_number: issue.number,
+//                 per_page: 100
+//             });
+            
+//             const sortedComments = comments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+//             const warningComment = sortedComments.find(c => c.body?.includes(CLOSED_PR_COMMENT_MARKER));
+//             if (!warningComment) {
+//                 console.log(`No warning comment found, removing label`);
+//                 try {
+//                     await octokit.rest.issues.removeLabel({ 
+//                         owner, 
+//                         repo: repoName, 
+//                         issue_number: issue.number, 
+//                         name: CLOSED_PR_LABEL 
+//                     });
+//                 } catch (labelError) {
+//                     if (labelError.status !== 404 && labelError.statusCode !== 404) {
+//                         throw labelError;
+//                     }
+//                 }
+//                 continue;
+//             }
+            
+//             const commentTime = new Date(warningComment.created_at).getTime();
+//             const elapsed = now - commentTime;
+//             const hoursElapsed = (elapsed / (60 * 60 * 1000)).toFixed(1);
+            
+//             console.log(`Warning posted ${hoursElapsed} hours ago`);
+            
+//             if (elapsed < CLOSED_PR_GRACE_PERIOD_MS) {
+//                 console.log(`Grace period not expired yet, skipping`);
+//                 continue;
+//             }
+            
+//             const linkedPRs = await getLinkedPRsWithDetails(octokit, owner, repoName, issue.number);
+//             const hasOpen = linkedPRs.open.length > 0;
+//             const prNumber = linkedPRs.open.length > 0 ? linkedPRs.open[0].number : null;
+//             const error = linkedPRs.error;
+            
+//             if (error) {
+//                 console.log(`API error checking for open PRs, skipping to be safe`);
+//                 continue;
+//             }
+            
+//             if (hasOpen) {
+//                 console.log(`Found open PR #${prNumber}, removing label`);
+//                 try {
+//                     await octokit.rest.issues.removeLabel({ 
+//                         owner, 
+//                         repo: repoName, 
+//                         issue_number: issue.number, 
+//                         name: CLOSED_PR_LABEL 
+//                     });
+//                 } catch (labelError) {
+//                     if (labelError.status !== 404 && labelError.statusCode !== 404) {
+//                         throw labelError;
+//                     }
+//                 }
+//                 await octokit.rest.issues.deleteComment({ 
+//                     owner, 
+//                     repo: repoName, 
+//                     comment_id: warningComment.id 
+//                 });
+//                 await octokit.rest.issues.createComment({
+//                     owner,
+//                     repo: repoName,
+//                     issue_number: issue.number,
+//                     body: `Open PR #${prNumber} found. Unassignment cancelled.${attribution}`
+//                 });
+//                 continue;
+//             }
+            
+//             console.log(`Grace period expired and no open PR, unassigning`);
+            
+//             // Extract PR author from warning comment
+//             const prAuthorMatch = warningComment.body.match(/Hi @([^,]+),/);
+//             const prAuthor = prAuthorMatch ? prAuthorMatch[1] : null;
+            
+//             let unassigned = false;
+//             if (prAuthor) {
+//                 const isAssigned = issue.assignees.some(a => a.login === prAuthor);
+//                 if (isAssigned) {
+//                     await octokit.rest.issues.removeAssignees({
+//                         owner,
+//                         repo: repoName,
+//                         issue_number: issue.number,
+//                         assignees: [prAuthor]
+//                     });
+//                     unassigned = true;
+//                     console.log(`Unassigned: ${prAuthor}`);
+//                 } else {
+//                     console.log(`PR author ${prAuthor} not assigned to issue, skipping unassignment`);
+//                 }
+//             } else {
+//                 console.log(`Could not extract PR author from warning comment, skipping unassignment`);
+//             }
+            
+//             try {
+//                 await octokit.rest.issues.removeLabel({ 
+//                     owner, 
+//                     repo: repoName, 
+//                     issue_number: issue.number, 
+//                     name: CLOSED_PR_LABEL 
+//                 });
+//             } catch (labelError) {
+//                 if (labelError.status !== 404 && labelError.statusCode !== 404) {
+//                     throw labelError;
+//                 }
+//             }
+//             await octokit.rest.issues.deleteComment({ 
+//                 owner, 
+//                 repo: repoName, 
+//                 comment_id: warningComment.id 
+//             });
+            
+//             const finalMessage = unassigned
+//                 ? `Your PR was closed over 12 hours ago and no new PR was opened. You've been unassigned from this issue.\n\n` +
+//                 `Feel free to comment /assign if you'd like to work on this again.${attribution}`
+//                 : `Grace period expired and no new PR was opened. No assignee was removed because the original assignee could not be verified.\n\n` +
+//                 `Feel free to comment /assign if you'd like to work on this again.${attribution}`;
+//             await octokit.rest.issues.createComment({
+//                 owner,
+//                 repo: repoName,
+//                 issue_number: issue.number,
+//                 body: finalMessage
+//             });
+            
+//             console.log(`Unassignment complete for issue #${issue.number}`);
+//         } catch (e) {
+//             console.log(`Failed to process issue #${issue.number}: ${e.message}`);
+//         }
+//     }
+    
+//     console.log('Closed PR grace period enforcement complete');
+// }
+
+// const run = async () => {
+//     try {
+//         console.log("Starting GitHub Action...");
+
+//         // Get necessary inputs
+//         const gitHubToken = core.getInput('repo-token', { required: true });
+//         const giphyApiKey = core.getInput('giphy-api-key', { required: true });
+//         const octokit = github.getOctokit(gitHubToken);
+
+//         const { eventName, payload, repo } = github.context;
+//         const { issue, comment, pull_request } = payload;
+//         const repository = `${repo.owner}/${repo.repo}`;
+//         const [owner, repoName] = repository.split('/');
+
+//         console.log(`Processing event: ${eventName} in repository ${repository}`);
+
+//         const attribution = '\n\n---\n*This comment was generated by [OWASP BLT-Action](https://github.com/OWASP-BLT/BLT-Action)*';
+
+//         if (eventName === 'pull_request_target' && pull_request) {
+//             const action = payload.action;
+            
+//             if (action === 'closed') {
+//                 await handleClosedPR(octokit, owner, repoName, pull_request, attribution);
+//                 return;
+//             }
+            
+//             if (action === 'opened' || action === 'reopened') {
+//                 await handleOpenedPR(octokit, owner, repoName, pull_request, attribution);
+//                 return;
+//             }
+//         }
+
+//         if (eventName === 'schedule' || eventName === 'workflow_dispatch') {
+//             await enforceClosedPRGracePeriod(octokit, owner, repoName, attribution);
+//         }
+
+//         // Assignment keywords
+//         const assignKeywords = ['/assign', 'assign to me', 'assign this to me', 'assign it to me', 'assign me this', 'work on this', 'i can try fixing this', 'i am interested in doing this', 'be assigned this', 'i am interested in contributing'];
+//         const unassignKeywords = ['/unassign'];
+//         const giphyKeyword = '/giphy';
+//         const kudosKeyword = '/kudos';
+//         const tipKeyword = '/tip';
+
+//         if ((eventName === 'issue_comment' && issue && comment) || (eventName === 'pull_request_review_comment' && pull_request && comment)) {
+//             console.log('Processing comment...');
+//             const commentBody = comment.body.toLowerCase();
+//             const shouldAssign = assignKeywords.some(keyword => commentBody.includes(keyword));
+//             const shouldUnassign = unassignKeywords.some(keyword => commentBody.startsWith(keyword));
+//             const shouldGiphy = commentBody.startsWith(giphyKeyword);
+//             const shouldKudos = commentBody.startsWith(kudosKeyword);
+//             const shouldTip = commentBody.startsWith(tipKeyword);
+
+//             if (shouldUnassign) {
+//                 if (!issue) {
+//                     console.log('Skipping /unassign: no issue context for this event.');
+//                     return;
+//                 }
+//                 console.log(`Unassigning issue #${issue.number} from ${comment.user.login}`);
+
+//                 try {
+//                     // Fetch issue details
+//                     const issueDetails = await octokit.issues.get({
+//                         owner,
+//                         repo: repoName,
+//                         issue_number: issue.number
+//                     });
+
+//                     const hasAssignedLabel = issueDetails.data.labels.some(label => label.name === "assigned");
+
+//                     if (hasAssignedLabel) {
+//                         await octokit.issues.removeAssignees({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number,
+//                             assignees: [comment.user.login]
+//                         });
+
+//                         await octokit.issues.removeLabel({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number,
+//                             name: "assigned"
+//                         }).catch(() => console.log("Label already removed or not found."));
+
+//                         // Check existing comments to avoid duplicates
+//                         const existingComments = await octokit.issues.listComments({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number
+//                         });
+
+//                         const unassignMessageExists = existingComments.data.some(comment =>
+//                             comment.body.includes('⏰ This issue has been automatically unassigned from') ||
+//                             comment.body.includes('You have been unassigned from this issue.')
+//                         );
+
+//                         if (!unassignMessageExists) {
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 body: `You have been unassigned from this issue. It's now open for others. You can reassign it anytime by typing \`/assign\`.${attribution}`
+//                             });
+//                         }
+//                     } else {
+//                         console.log(`Issue #${issue.number} does not have the "assigned" label, skipping unassign.`);
+//                     }
+//                 } catch (error) {
+//                     console.error(`Error unassigning issue #${issue.number}:`, error);
+//                 }
+//             }
+
+//             if (shouldAssign) {
+//                 try {
+//                     if (!issue) {
+//                         console.log('Skipping /assign: no issue context for this event.');
+//                         // Skip assignment - no issue context for this event
+//                         return;
+//                     }
+                    
+//                     console.log(`Assigning issue #${issue.number} to ${comment.user.login}`);
+//                     const assigneeLogin = comment.user.login;
+
+//                     // Step 3: Updated assignment logic with 60-day stale PR handling
+//                     // Get all linked PRs (open and closed)
+//                     const linkedPRs = await getLinkedPRsWithDetails(octokit, owner, repoName, issue.number);
+
+//                     // Define state variables at the correct scope
+//                     let stalePRs = [];
+//                     let activePRs = [];
+//                     let shouldSkipNormalAssignmentCheck = false;
+
+//                     // Check for open PRs
+//                     if (linkedPRs.open.length > 0) {
+//                         stalePRs = linkedPRs.open.filter(pr => pr.age >= STALE_PR_THRESHOLD_DAYS);
+//                         activePRs = linkedPRs.open.filter(pr => pr.age < STALE_PR_THRESHOLD_DAYS);
+
+//                         if (activePRs.length > 0) {
+//                             // Block assignment - recent open PRs exist
+//                             const prList = activePRs.map(pr =>
+//                                 `- #${pr.number} by @${pr.author} (${pr.age} days old)`
+//                             ).join('\n');
+
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 body: `**This issue has active open pull request(s):**\n\n${prList}\n\nPlease coordinate with the PR author(s) before taking over this issue.${attribution}`
+//                             });
+//                             return; // Block assignment
+//                         }
+
+//                         if (stalePRs.length > 0 && issue.assignees?.length > 0) {
+//                             // Mark takeover intent; perform mutations only after new-assignee eligibility checks pass.
+//                             shouldSkipNormalAssignmentCheck = true;
+//                         }
+//                     }
+
+//                     // Show closed PR history if exists (but only if we're proceeding with assignment)
+//                     if (linkedPRs.closed.length > 0) {
+//                         const closedList = linkedPRs.closed.map(pr => {
+//                             const status = pr.merged ? '✅ merged' : '❌ closed';
+//                             return `- #${pr.number} by @${pr.author} (${status}, ${pr.age} days ago)`;
+//                         }).join('\n');
+
+//                         await octokit.issues.createComment({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number,
+//                             body: `📋 **Previous work on this issue:**\n\n${closedList}\n\nPlease review the previous PR(s) to understand the context and avoid duplicate work.${attribution}`
+//                         });
+//                     }
+
+//                     // Check if we should proceed with takeover assignment (stale PRs + removed assignee)
+//                     if (shouldSkipNormalAssignmentCheck) {
+//                         // Direct assignment after removing previous assignee
+//                         // Get assigned issues for the new assignee
+//                         const assignedIssues = await octokit.paginate(octokit.issues.listForRepo, {
+//                             owner,
+//                             repo: repoName,
+//                             state: 'open',
+//                             assignee: assigneeLogin
+//                         });
+
+//                         // Check if user has unresolved issues without a PR
+//                         let issuesWithoutPR = [];
+//                         for (const assignedIssue of assignedIssues) {
+//                             if (assignedIssue.number === issue.number) continue;
+
+//                             // Use the fixed helper function
+//                             if (!(await hasOpenLinkedPR(octokit, owner, repoName, assignedIssue.number))) {
+//                                 console.log(`Issue #${assignedIssue.number} does not have an open pull request`);
+//                                 issuesWithoutPR.push(assignedIssue.number);
+//                             }
+//                         }
+
+//                         if (issuesWithoutPR.length > 0) {
+//                             const issueList = issuesWithoutPR.join(', #');
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 body: `You cannot be assigned to this issue because you are already assigned to the following issues without an open pull request: #${issueList}. Please submit a pull request for these issues before getting assigned to a new one.${attribution}`
+//                             });
+//                             return; // Stop here - assignment blocked
+//                         }
+
+//                         // Store original assignees for potential rollback
+//                         const originalAssignees = issue.assignees || [];
+
+//                         try {
+//                             // Now it's safe to unassign previous assignee(s) (and keep label consistency)
+//                             await octokit.issues.removeAssignees({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 assignees: originalAssignees.map(a => a.login)
+//                             });
+
+//                             await octokit.issues.removeLabel({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 name: "assigned"
+//                             }).catch(() => console.log("Label already removed or not found."));
+
+//                             // Assign user to the issue
+//                             await octokit.issues.addAssignees({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 assignees: [assigneeLogin]
+//                             });
+
+//                             // Add "assigned" label
+//                             await octokit.issues.addLabels({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 labels: ["assigned"]
+//                             });
+
+//                             // Post takeover message after successful assignment
+//                             const prList = stalePRs.map(pr =>
+//                                 `- #${pr.number} by @${pr.author} (${pr.age} days old, stale)`
+//                             ).join('\n');
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 body: `⏰ Previous assignee removed due to stale PR(s):\n\n${prList}\n\n@${assigneeLogin} is taking over.${attribution}`
+//                             });
+//                             return; // Done with assignment
+//                         } catch (error) {
+//                             console.error(`Failed to complete takeover assignment for issue #${issue.number}:`, error);
+
+//                             // Attempt to restore original state
+//                             try {
+//                                 if (originalAssignees.length > 0) {
+//                                     // Try to reassign original assignees
+//                                     await octokit.issues.addAssignees({
+//                                         owner,
+//                                         repo: repoName,
+//                                         issue_number: issue.number,
+//                                         assignees: originalAssignees.map(a => a.login)
+//                                     });
+
+//                                     // Re-add the assigned label
+//                                     await octokit.issues.addLabels({
+//                                         owner,
+//                                         repo: repoName,
+//                                         issue_number: issue.number,
+//                                         labels: ["assigned"]
+//                                     });
+
+//                                     await octokit.issues.createComment({
+//                                         owner,
+//                                         repo: repoName,
+//                                         issue_number: issue.number,
+//                                         body: `⚠️ **Takeover failed**: Could not assign @${assigneeLogin} to this issue.\n\nError: ${error.message || 'Unknown error'}\n\nIssue has been restored to original assignee @${originalAssignees[0].login}.${attribution}`
+//                                     });
+//                                 } else {
+//                                     // No original assignees - just add the label
+//                                     await octokit.issues.addLabels({
+//                                         owner,
+//                                         repo: repoName,
+//                                         issue_number: issue.number,
+//                                         labels: ["assigned"]
+//                                     }).catch(() => console.log("Label operation failed during restore"));
+
+//                                     await octokit.issues.createComment({
+//                                         owner,
+//                                         repo: repoName,
+//                                         issue_number: issue.number,
+//                                         body: `⚠️ **Takeover failed**: Could not assign @${assigneeLogin} to this issue.\n\nError: ${error.message || 'Unknown error'}\n\nIssue has been left unassigned. Please try again or contact maintainers.${attribution}`
+//                                     });
+//                                 }
+//                             } catch (restoreError) {
+//                                 console.error(`Failed to restore original state for issue #${issue.number}:`, restoreError);
+
+//                                 // Last resort - notify about broken state
+//                                 await octokit.issues.createComment({
+//                                     owner,
+//                                     repo: repoName,
+//                                     issue_number: issue.number,
+//                                     body: `🚨 **Critical assignment error**: Takeover failed and could not restore original state.\n\nError: ${error.message || 'Unknown error'}\nRestore error: ${restoreError.message || 'Unknown error'}\n\nPlease contact maintainers to manually fix this issue's assignment.${attribution}`
+//                                 });
+//                             }
+//                             return; // Stop here - assignment failed
+//                         }
+//                     }
+
+//                     // NORMAL ASSIGNMENT FLOW (no stale PR takeover)
+//                     // Get assigned issues
+//                     const assignedIssues = await octokit.paginate(octokit.issues.listForRepo, {
+//                         owner,
+//                         repo: repoName,
+//                         state: 'open',
+//                         assignee: assigneeLogin
+//                     });
+
+//                     // Check if user has unresolved issues without a PR
+//                     let issuesWithoutPR = [];
+//                     for (const assignedIssue of assignedIssues) {
+//                         if (assignedIssue.number === issue.number) continue;
+
+//                         // Use the fixed helper function
+//                         if (!(await hasOpenLinkedPR(octokit, owner, repoName, assignedIssue.number))) {
+//                             console.log(`Issue #${assignedIssue.number} does not have an open pull request`);
+//                             issuesWithoutPR.push(assignedIssue.number);
+//                         }
+//                     }
+
+//                     if (issuesWithoutPR.length > 0) {
+//                         const issueList = issuesWithoutPR.join(', #');
+//                         await octokit.issues.createComment({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number,
+//                             body: `You cannot be assigned to this issue because you are already assigned to the following issues without an open pull request: #${issueList}. Please submit a pull request for these issues before getting assigned to a new one.${attribution}`
+//                         });
+//                         return; // Stop here -- assignment blocked
+//                     }
+
+//                     // prevent multiple assignees
+//                     const currentAssignees = issue.assignees || [];
+
+//                     if (currentAssignees.length > 0) {
+//                         const currentAssignee = currentAssignees[0].login;
+
+//                         if (currentAssignee !== assigneeLogin) {
+//                             console.log(`Issue #${issue.number} is already assigned to ${currentAssignee}`);
+
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 body: `⚠️ This issue is already assigned to @${currentAssignee}. Please pick another issue.${attribution}`
+//                             });
+
+//                             return; // Stop here -- assignment blocked
+//                         }
+
+//                         // If already assigned to the same user → proceed silently
+//                         console.log(`Issue #${issue.number} is already assigned to ${assigneeLogin}. Notifying user.`);
+//                         await octokit.issues.createComment({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number,
+//                             body: `ℹ️ You are already assigned to this issue.${attribution}`
+//                         });
+//                         return; // Stop here -- nothing to do
+//                     }
+
+//                     try {
+//                         // Assign user to the issue
+//                         await octokit.issues.addAssignees({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number,
+//                             assignees: [assigneeLogin]
+//                         });
+
+//                         // Add "assigned" label
+//                         await octokit.issues.addLabels({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number,
+//                             labels: ["assigned"]
+//                         });
+
+//                         await octokit.issues.createComment({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue.number,
+//                             body: `Hello @${assigneeLogin}! You've been assigned to [${repository} issue #${issue.number}](https://github.com/${repository}/issues/${issue.number}). You have 24 hours to complete a pull request.${attribution}`
+//                         });
+//                     } catch (error) {
+//                         console.error(`Failed to assign @${assigneeLogin} to issue #${issue.number}:`, error);
+                        
+//                         // Clean up any partial changes
+//                         try {
+//                             // Remove assignee if it was partially added
+//                             await octokit.issues.removeAssignees({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 assignees: [assigneeLogin]
+//                             }).catch(() => { /* Ignore if not assigned */ });
+                            
+//                             // Remove label if it was partially added
+//                             await octokit.issues.removeLabel({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 name: "assigned"
+//                             }).catch(() => { /* Ignore if not present */ });
+                            
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue.number,
+//                                 body: `⚠️ **Assignment failed**: Could not assign @${assigneeLogin} to this issue.\n\nError: ${error.message || 'Unknown error'}\n\nPlease try again or contact maintainers.${attribution}`
+//                             });
+//                         } catch (cleanupError) {
+//                             console.error(`Failed to clean up after assignment error for issue #${issue.number}:`, cleanupError);
+//                         }
+//                     }
+//                 } catch (error) {
+//                     console.error(`Error in assignment flow${issue ? ` for issue #${issue.number}` : ''}:`, error);
+//                 }
+//             } else if (shouldGiphy) {
+//                 const searchText = commentBody.replace(giphyKeyword, '').trim();
+//                 const giphyResponse = await axios.get(`https://api.giphy.com/v1/gifs/search?api_key=${giphyApiKey}&q=${searchText}&limit=1`);
+//                 const gifUrl = giphyResponse.data.data[0]?.images?.original?.url;
+
+//                 if (gifUrl) {
+//                     await octokit.issues.createComment({
+//                         owner,
+//                         repo: repoName,
+//                         issue_number: issue ? issue.number : pull_request.number,
+//                         body: `![Giphy GIF](${gifUrl})${attribution}`
+//                     });
+//                 } else {
+//                     await octokit.issues.createComment({
+//                         owner,
+//                         repo: repoName,
+//                         issue_number: issue ? issue.number : pull_request.number,
+//                         body: `No GIFs found for "${searchText}".${attribution}`
+//                     });
+//                 }
+//             } else if (shouldKudos) {
+//                 const kudosCommand = comment.body.trim().split(/\s+/);
+//                 if (kudosCommand.length >= 2) {
+//                     const sender = comment.user.login; // GitHub username of the commenter
+//                     let receiver = kudosCommand[1]; // Receiver from the command
+//                     const kudosComment = kudosCommand.slice(2).join(' ') || 'Great work!'; // Optional comment
+
+//                     // Strip @ symbol from receiver if present
+//                     receiver = receiver.replace(/^@/, '');
+
+//                     // Build the link to the issue or PR where kudos was given
+//                     const issueNumber = issue ? issue.number : pull_request.number;
+//                     const link = `https://github.com/${owner}/${repoName}/issues/${issueNumber}`;
+
+//                     console.log(`Sending kudos from ${sender} to @${receiver} with comment: "${kudosComment}"`);
+
+//                     // Always post kudos comment on GitHub first
+//                     await octokit.issues.createComment({
+//                         owner,
+//                         repo: repoName,
+//                         issue_number: issueNumber,
+//                         body: `🎉 Kudos from @${sender} to @${receiver}! 🎉\n\n> ${kudosComment}${attribution}`
+//                     });
+
+//                     // Try to send to BLT API (optional, won't fail if user doesn't have profile)
+//                     try {
+//                         await axios.post('https://owaspblt.org/teams/give-kudos/', {
+//                             kudosReceiver: receiver,
+//                             kudosSender: sender,
+//                             link: link,
+//                             comment: kudosComment
+//                         });
+
+//                         // If successful, add a follow-up comment about BLT tracking
+//                         await octokit.issues.createComment({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issueNumber,
+//                             body: `✅ Kudos tracked on [BLT profile](https://owaspblt.org/profile/${receiver})!${attribution}`
+//                         });
+
+//                         console.log(`Kudos successfully tracked on BLT for ${receiver}`);
+//                     } catch (apiError) {
+//                         console.log(`Note: Kudos not tracked on BLT (user may not have a profile): ${apiError.message}`);
+
+//                         // Post informational message about BLT profile (only if it's a 404 or similar)
+//                         if (apiError.response && (apiError.response.status === 404 || apiError.response.status === 400)) {
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issueNumber,
+//                                 body: `💡 @${receiver} - Create a [BLT profile](https://owaspblt.org) to track all your kudos in one place!${attribution}`
+//                             });
+//                         }
+//                     }
+//                 } else {
+//                     console.log('Invalid /kudos command format.');
+//                     await octokit.issues.createComment({
+//                         owner,
+//                         repo: repoName,
+//                         issue_number: issue ? issue.number : pull_request.number,
+//                         body: `⚠️ Invalid /kudos command format.\n\nUsage: \`/kudos @username [optional comment]\`\n\nExample: \`/kudos @alice Great work on the PR!\`${attribution}`
+//                     });
+//                 }
+//             } else if (shouldTip) {
+//                 const tipCommand = comment.body.trim().split(/\s+/);
+//                 if (tipCommand.length >= 3) {
+//                     const sender = comment.user.login; // GitHub username of the commenter
+//                     const receiver = tipCommand[1].replace('@', ''); // Remove @ if present
+//                     const amount = tipCommand[2]; // Amount with $ symbol
+
+//                     // Validate amount format
+//                     const amountMatch = amount.match(/^\$?(\d+(?:\.\d{1,2})?)$/);
+//                     if (!amountMatch) {
+//                         await octokit.issues.createComment({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue ? issue.number : pull_request.number,
+//                             body: `⚠️ Invalid amount format. Use: \`/tip @username $amount\` (e.g., \`/tip @user $5\` or \`/tip @user $10.50\`)${attribution}`
+//                         });
+//                         return;
+//                     }
+
+//                     const amountValue = amountMatch[1];
+//                     const sponsorUrl = `https://github.com/sponsors/${receiver}`;
+
+//                     console.log(`Generating tip link from ${sender} to ${receiver} for $${amountValue}`);
+
+//                     try {
+//                         const sponsorCheckResponse = await axios.head(sponsorUrl, {
+//                             timeout: 8000,
+//                             validateStatus: () => true, // don't throw; we inspect status
+//                         });
+
+//                         const status = sponsorCheckResponse.status;
+
+//                         if (status === 404) {
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue ? issue.number : pull_request.number,
+//                                 body: `⚠️ @${receiver} does not appear to have GitHub Sponsors enabled. Please verify the username or ask them to set up GitHub Sponsors first.\n\nLearn more: https://github.com/sponsors${attribution}`
+//                             });
+//                             return;
+//                         }
+//                         if (status < 200 || status >= 300) {
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: issue ? issue.number : pull_request.number,
+//                                 body: `⚠️ Could not verify GitHub Sponsors for @${receiver} right now (status ${status}). Please try again later or visit ${sponsorUrl}.${attribution}`
+//                             });
+//                             return;
+//                         }
+
+//                         // Post success message with sponsor link
+//                         await octokit.issues.createComment({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue ? issue.number : pull_request.number,
+//                             body: `💰 **Tip Request from @${sender} to @${receiver}**\n\n` +
+//                                 `Amount: **$${amountValue}**\n\n` +
+//                                 `To complete this tip, please visit @${receiver}'s GitHub Sponsors page and select a one-time payment:\n\n` +
+//                                 `🔗 [Sponsor @${receiver}](${sponsorUrl})\n\n` +
+//                                 `*Note: GitHub Sponsors does not support automated payments via API. Please complete the transaction manually by selecting "One-time" on the sponsor page and entering your desired amount.*${attribution}`
+//                         });
+//                     } catch (error) {
+//                         console.error('Error processing tip command:', error);
+//                         await octokit.issues.createComment({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: issue ? issue.number : pull_request.number,
+//                             body: `⚠️ Failed to process tip request. Please try again later or visit https://github.com/sponsors/${receiver} directly.${attribution}`
+//                         });
+//                     }
+//                 } else {
+//                     console.log('Invalid /tip command format.');
+//                     await octokit.issues.createComment({
+//                         owner,
+//                         repo: repoName,
+//                         issue_number: issue ? issue.number : pull_request.number,
+//                         body: `⚠️ Invalid /tip command format. Use: \`/tip @username $amount\`\n\nExample: \`/tip @contributor $10\`${attribution}`
+//                     });
+//                 }
+//             }
+//         }
+
+//         // Only run stale assignment checks on scheduled events
+//         if (eventName !== 'schedule') {
+//             console.log('Skipping stale assignment checks - not a scheduled event');
+//             return;
+//         }
+
+//         console.log('Checking for stale assignments...');
+//         const presentDate = new Date();
+
+//         try {
+//             const events = await octokit.paginate(octokit.issues.listEventsForRepo, {
+//                 owner,
+//                 repo: repoName,
+//                 per_page: 100,
+//             }, response => response.data.filter(event => event.event === "assigned"));
+
+//             for (const event of events) {
+//                 if (event.issue.assignee && event.issue.state === "open") {
+//                     const timeSinceUpdate = presentDate.getTime() - new Date(event.issue.updated_at).getTime();
+//                     const daysInactive = timeSinceUpdate / (1000 * 3600 * 24);
+
+//                     if (daysInactive > 1) {
+//                         console.log(`Unassigning issue #${event.issue.number} due to inactivity`);
+//                         try {
+//                             // Use the new function to check for open PRs
+//                             const linkedPRs = await getLinkedPRsWithDetails(octokit, owner, repoName, event.issue.number);
+//                             const hasOpenPR = linkedPRs.open.length > 0;
+
+//                             if (hasOpenPR) {
+//                                 console.log(`Issue #${event.issue.number} has ${linkedPRs.open.length} open PR(s), checking if any are active...`);
+
+//                                 // Check if any open PRs are less than 60 days old
+//                                 const activePRs = linkedPRs.open.filter(pr => pr.age < STALE_PR_THRESHOLD_DAYS);
+//                                 if (activePRs.length > 0) {
+//                                     console.log(`Issue #${event.issue.number} has active PR(s), skipping unassign.`);
+//                                     continue;
+//                                 }
+
+//                                 // All open PRs are stale (60+ days) - allow unassignment
+//                                 console.log(`All open PRs for issue #${event.issue.number} are stale (60+ days), proceeding with unassignment.`);
+//                             }
+//                         } catch (searchError) {
+//                             console.log(`Error checking for open pull requests for issue #${event.issue.number}:`, searchError);
+//                             console.log(`Skipping unassignment for issue #${event.issue.number} due to verification failure.`);
+//                             continue;
+//                         }
+
+//                         const issueDetails = await octokit.issues.get({
+//                             owner,
+//                             repo: repoName,
+//                             issue_number: event.issue.number
+//                         });
+
+//                         const hasAssignedLabel = issueDetails.data.labels.some(label => label.name === "assigned");
+
+//                         if (hasAssignedLabel) {
+//                             await octokit.issues.removeAssignees({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: event.issue.number,
+//                                 assignees: [event.issue.assignee.login]
+//                             });
+
+//                             await octokit.issues.removeLabel({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: event.issue.number,
+//                                 name: "assigned"
+//                             });
+
+//                             await octokit.issues.createComment({
+//                                 owner,
+//                                 repo: repoName,
+//                                 issue_number: event.issue.number,
+//                                 body: `⏰ This issue has been automatically unassigned from @${event.issue.assignee.login} due to 24 hours of inactivity without an *active* linked pull request.\n\n**Next Steps:**\n1. If you were working on this, you can reassign it by typing \`/assign\`\n2. If you have a WIP pull request, please link it to this issue\n3. The issue is now available for others to work on\n\nNote: If there's an existing PR linked to this issue that needs attention, please coordinate with the PR author.${attribution}`
+//                             });
+//                         } else {
+//                             console.log(`Issue #${event.issue.number} does not have the "assigned" label, skipping unassign.`);
+//                         }
+//                     }
+//                 }
+//             }
+//         } catch (error) {
+//             console.error("Error processing stale assignments:", error);
+//         }
+
+//     } catch (error) {
+//         console.error("Critical error in GitHub Action:", error);
+//     }
+// };
+
+// run();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const core = __nccwpck_require__(7484);
 const github = __nccwpck_require__(3228);
 const axios = __nccwpck_require__(7269);
@@ -43750,6 +46332,111 @@ const CLOSED_PR_GRACE_PERIOD_MS = 12 * 60 * 60 * 1000;
 const CLOSED_PR_LABEL = 'pr-closed-pending-unassign';
 const CLOSED_PR_LABEL_COLOR = 'ff9800';
 const CLOSED_PR_COMMENT_MARKER = '<!-- closed-pr-warning -->';
+
+// ✅ ADDED: bounty constants + helpers
+const BOUNTY_COMMENT_MARKER = '<!-- blt-bounty -->';
+const BOUNTY_LABEL_COLOR = '0e8a16';
+
+function normalizeMoney(n) {
+  return Number(n)
+    .toFixed(2)
+    .replace(/\.00$/, '')
+    .replace(/(\.\d)0$/, '$1');
+}
+
+function parseBountyAmount(raw) {
+  // /bounty $5  | /bounty 5 | /bounty $10.50
+  const m = raw.trim().match(/^\/bounty\s+\$?\s*(\d+(?:\.\d{1,2})?)\s*$/i);
+  if (!m) return null;
+  const v = Number(m[1]);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  return v;
+}
+
+function getBountyInfoFromLabels(labels) {
+  let total = 0;
+  const bountyLabels = [];
+
+  for (const l of labels || []) {
+    const name = typeof l === 'string' ? l : l?.name;
+    if (!name) continue;
+    const t = String(name).trim();
+
+    const mm = t.match(/^\$(\d+(?:\.\d{1,2})?)\s+Bounty$/i);
+    if (mm) {
+      bountyLabels.push(t);
+      total = Number(mm[1]) || total;
+    }
+  }
+
+  return { total, bountyLabels };
+}
+
+async function ensureLabelExists(octokit, owner, repoName, labelName) {
+  try {
+    await octokit.rest.issues.getLabel({ owner, repo: repoName, name: labelName });
+    return;
+  } catch (e) {
+    if (e.status !== 404 && e.statusCode !== 404) return;
+  }
+
+  try {
+    await octokit.rest.issues.createLabel({
+      owner,
+      repo: repoName,
+      name: labelName,
+      color: BOUNTY_LABEL_COLOR,
+      description: 'Issue bounty label'
+    });
+  } catch (_) {}
+}
+
+async function getSponsoredCount(octokit, login) {
+  try {
+    const q = `
+      query($login: String!) {
+        user(login: $login) {
+          sponsoring(first: 1) { totalCount }
+        }
+      }
+    `;
+    const res = await octokit.graphql(q, { login });
+    return res?.user?.sponsoring?.totalCount ?? 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+async function upsertBountyBotComment(octokit, owner, repoName, issueNumber, body) {
+  const comments = await octokit.paginate(octokit.rest.issues.listComments, {
+    owner,
+    repo: repoName,
+    issue_number: issueNumber,
+    per_page: 100
+  });
+
+  const existing = comments.find(c => {
+    const isBot = c?.user?.login === 'github-actions[bot]' || c?.user?.type === 'Bot';
+    return isBot && (c?.body || '').includes(BOUNTY_COMMENT_MARKER);
+  });
+
+  if (existing) {
+    await octokit.rest.issues.updateComment({
+      owner,
+      repo: repoName,
+      comment_id: existing.id,
+      body
+    });
+    return;
+  }
+
+  await octokit.rest.issues.createComment({
+    owner,
+    repo: repoName,
+    issue_number: issueNumber,
+    body
+  });
+}
 
 async function hasOpenLinkedPR(
     octokit,
@@ -44296,6 +46983,7 @@ const run = async () => {
         const giphyKeyword = '/giphy';
         const kudosKeyword = '/kudos';
         const tipKeyword = '/tip';
+        const bountyKeyword = '/bounty'; // ✅ ADDED
 
         if ((eventName === 'issue_comment' && issue && comment) || (eventName === 'pull_request_review_comment' && pull_request && comment)) {
             console.log('Processing comment...');
@@ -44305,6 +46993,7 @@ const run = async () => {
             const shouldGiphy = commentBody.startsWith(giphyKeyword);
             const shouldKudos = commentBody.startsWith(kudosKeyword);
             const shouldTip = commentBody.startsWith(tipKeyword);
+            const shouldBounty = commentBody.startsWith(bountyKeyword); // ✅ ADDED
 
             if (shouldUnassign) {
                 if (!issue) {
@@ -44849,6 +47538,78 @@ const run = async () => {
                         body: `⚠️ Invalid /tip command format. Use: \`/tip @username $amount\`\n\nExample: \`/tip @contributor $10\`${attribution}`
                     });
                 }
+
+            // ✅ ADDED: /bounty handler (place AFTER /tip block)
+            } else if (shouldBounty) {
+                if (!issue) {
+                    console.log('Skipping /bounty: no issue context for this event.');
+                    return;
+                }
+
+                const raw = (comment.body || '').trim();
+                const addAmount = parseBountyAmount(raw);
+
+                if (!addAmount) {
+                    await octokit.issues.createComment({
+                        owner,
+                        repo: repoName,
+                        issue_number: issue.number,
+                        body: `⚠️ Invalid /bounty format.\n\nUse: \`/bounty $amount\`\nExample: \`/bounty $5\`${attribution}`
+                    });
+                    return;
+                }
+
+                // fetch latest issue details (labels)
+                const issueDetails = await octokit.issues.get({
+                    owner,
+                    repo: repoName,
+                    issue_number: issue.number
+                });
+
+                const { total: currentTotal, bountyLabels } = getBountyInfoFromLabels(issueDetails.data.labels || []);
+                const newTotal = currentTotal + addAmount;
+                const normalizedTotal = normalizeMoney(newTotal);
+
+                const newLabel = `$${normalizedTotal} Bounty`;
+
+                // ensure label exists (best effort)
+                await ensureLabelExists(octokit, owner, repoName, newLabel);
+
+                // remove old bounty labels (keep only new)
+                for (const old of bountyLabels) {
+                    if (old === newLabel) continue;
+                    try {
+                        await octokit.issues.removeLabel({
+                            owner,
+                            repo: repoName,
+                            issue_number: issue.number,
+                            name: old
+                        });
+                    } catch (_) {}
+                }
+
+                // add/update bounty label
+                await octokit.issues.addLabels({
+                    owner,
+                    repo: repoName,
+                    issue_number: issue.number,
+                    labels: [newLabel]
+                });
+
+                // sponsor count (best-effort)
+                const sponsoredCount = await getSponsoredCount(octokit, comment.user.login);
+
+                // upsert bounty bot comment
+                const botBody =
+                    `${BOUNTY_COMMENT_MARKER}\n` +
+                    `### A bounty has been added!\n\n` +
+                    `This issue now has a total bounty of **$${normalizedTotal}** thanks to @${comment.user.login}.\n` +
+                    `They have sponsored **${sponsoredCount}** developers so far!\n\n` +
+                    `Want to contribute? Solve this issue and claim the reward.${attribution}`;
+
+                await upsertBountyBotComment(octokit, owner, repoName, issue.number, botBody);
+
+                console.log(`Bounty updated: ${newLabel}`);
             }
         }
 
@@ -44944,6 +47705,7 @@ const run = async () => {
 };
 
 run();
+
 module.exports = __webpack_exports__;
 /******/ })()
 ;
