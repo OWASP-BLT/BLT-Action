@@ -1442,6 +1442,20 @@ const run = async () => {
       } else if (shouldBounty) {
         if (!issue) {
           console.log("Skipping /bounty: no issue context for this event.");
+
+          const prNumber = pull_request?.number;
+
+          if (prNumber) {
+            await octokit.rest.issues.createComment({
+              owner,
+              repo: repoName,
+              issue_number: prNumber,
+              body:
+                `⚠️ The \`/bounty\` command is not supported in pull request review comments because issue context is unavailable.\n\n` +
+                `Please use \`/bounty $amount\` on the linked issue instead.${attribution}`,
+            });
+          }
+
           return;
         }
 
@@ -1449,7 +1463,7 @@ const run = async () => {
         const addAmount = parseBountyAmount(raw);
 
         if (!addAmount) {
-          await octokit.issues.createComment({
+          await octokit.rest.issues.createComment({
             owner,
             repo: repoName,
             issue_number: issue.number,
@@ -1458,8 +1472,7 @@ const run = async () => {
           return;
         }
 
-        // fetch latest issue details (labels)
-        const issueDetails = await octokit.issues.get({
+        const issueDetails = await octokit.rest.issues.get({
           owner,
           repo: repoName,
           issue_number: issue.number,
@@ -1468,6 +1481,7 @@ const run = async () => {
         const { total: currentTotal, bountyLabels } = getBountyInfoFromLabels(
           issueDetails.data.labels || [],
         );
+
         const newTotal = currentTotal + addAmount;
         const normalizedTotal = normalizeMoney(newTotal);
 
@@ -1476,11 +1490,10 @@ const run = async () => {
         // ensure label exists (best effort)
         await ensureLabelExists(octokit, owner, repoName, newLabel);
 
-        // remove old bounty labels (keep only new)
         for (const old of bountyLabels) {
           if (old === newLabel) continue;
           try {
-            await octokit.issues.removeLabel({
+            await octokit.rest.issues.removeLabel({
               owner,
               repo: repoName,
               issue_number: issue.number,
@@ -1490,7 +1503,7 @@ const run = async () => {
         }
 
         // add/update bounty label
-        await octokit.issues.addLabels({
+        await octokit.rest.issues.addLabels({
           owner,
           repo: repoName,
           issue_number: issue.number,
@@ -1503,7 +1516,7 @@ const run = async () => {
           comment.user.login,
         );
 
-        // upsert bounty bot comment - Added Here
+        // upsert bounty bot comment
         const botBody =
           `${BOUNTY_COMMENT_MARKER}\n` +
           `### A bounty has been added!\n\n` +
@@ -1523,7 +1536,6 @@ const run = async () => {
       }
     }
 
-    // Only run stale assignment checks on scheduled events
     if (eventName !== "schedule") {
       console.log("Skipping stale assignment checks - not a scheduled event");
       return;
