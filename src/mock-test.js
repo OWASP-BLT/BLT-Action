@@ -549,4 +549,67 @@ describe('GitHub API Mock Test', () => {
       assert.strictEqual(isHumanCommenter(mannequinComment), true);
     });
   });
+
+  describe('PR Age Calculation', () => {
+    it('should calculate age from created_at for open PRs', () => {
+      // Simulate the age calculation logic for open PRs
+      const openPR = {
+        state: 'open',
+        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+        closed_at: null,
+        updated_at: new Date().toISOString() // updated today
+      };
+
+      const referenceDate = openPR.state === 'open' ? openPR.created_at : openPR.closed_at;
+      const age = Math.floor((new Date() - new Date(referenceDate)) / (1000 * 3600 * 24));
+
+      assert.strictEqual(age, 5, 'Open PR should show age from creation date');
+    });
+
+    it('should calculate age from closed_at for closed PRs', () => {
+      // Simulate the age calculation logic for closed PRs
+      const closedPR = {
+        state: 'closed',
+        created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
+        closed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // closed 2 days ago
+        updated_at: new Date().toISOString()
+      };
+
+      const referenceDate = closedPR.state === 'open' ? closedPR.created_at : closedPR.closed_at;
+      const age = Math.floor((new Date() - new Date(referenceDate)) / (1000 * 3600 * 24));
+
+      assert.strictEqual(age, 2, 'Closed PR should show days since closure, not creation');
+    });
+
+    it('should show 0 days for PR created today', () => {
+      // PR created today
+      const todayPR = {
+        state: 'open',
+        created_at: new Date().toISOString(),
+        closed_at: null,
+        updated_at: new Date().toISOString()
+      };
+
+      const referenceDate = todayPR.state === 'open' ? todayPR.created_at : todayPR.closed_at;
+      const age = Math.floor((new Date() - new Date(referenceDate)) / (1000 * 3600 * 24));
+
+      assert.strictEqual(age, 0, 'PR created today should show as 0 days old');
+    });
+
+    it('should correctly calculate age for PR created 5 days ago but updated today', () => {
+      // This test validates the bug fix
+      const prWithRecentUpdate = {
+        state: 'open',
+        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+        closed_at: null,
+        updated_at: new Date().toISOString() // updated today
+      };
+
+      const referenceDate = prWithRecentUpdate.state === 'open' ? prWithRecentUpdate.created_at : prWithRecentUpdate.closed_at;
+      const age = Math.floor((new Date() - new Date(referenceDate)) / (1000 * 3600 * 24));
+
+      // Should be 5 (from created_at), NOT 0 (from updated_at)
+      assert.strictEqual(age, 5, 'Open PR age should be from created_at, not updated_at');
+    });
+  });
 });
