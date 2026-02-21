@@ -130,7 +130,10 @@ async function getLinkedPRsWithDetails(octokit, owner, repoName, issueNumber) {
             });
 
             const prData = pr.data;
-            const daysSinceCreated = Math.floor((new Date() - new Date(prData.created_at)) / (1000 * 3600 * 24));
+            // For open PRs: age is days since created
+            // For closed PRs: age is days since closed
+            const referenceDate = prData.state === "open" ? prData.created_at : prData.closed_at;
+            const daysSinceReference = Math.floor((new Date() - new Date(referenceDate)) / (1000 * 3600 * 24));
 
             const prInfo = {
                 number: prData.number,
@@ -138,7 +141,8 @@ async function getLinkedPRsWithDetails(octokit, owner, repoName, issueNumber) {
                 author: prData.user?.login || '[deleted user]',
                 created_at: prData.created_at,
                 updated_at: prData.updated_at,
-                age: daysSinceCreated,
+                closed_at: prData.closed_at,
+                age: daysSinceReference,
                 url: prData.html_url,
                 merged: prData.merged || false
             };
