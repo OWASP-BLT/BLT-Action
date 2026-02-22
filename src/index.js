@@ -1103,6 +1103,18 @@ const run = async () => {
                         return;
                     }
 
+                    // Validate receiver (GitHub username) to prevent malformed URLs
+                    const usernamePattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+                    if (!usernamePattern.test(receiver)) {
+                        await octokit.issues.createComment({
+                            owner,
+                            repo: repoName,
+                            issue_number: issue ? issue.number : pull_request.number,
+                            body: `⚠️ \`${receiver}\` does not appear to be a valid GitHub username. Please check the username and try again.${attribution}`
+                        });
+                        return;
+                    }
+
                     const amountValue = amountMatch[1];
                     const sponsorUrl = `https://github.com/sponsors/${receiver}`;
 
